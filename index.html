@@ -1,0 +1,2620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#12100e" />
+<title>🌍 硬核科技模拟 v1.2</title>
+<style>
+/* ============================================================
+   样式区（STYLE）
+   极简 · 纯文字 + emoji · 暗色荒野基调 · 响应式移动优先
+   ============================================================ */
+
+/* ---------- 全局变量：便于后续 v2+ 换肤/加主题 ---------- */
+:root {
+  --bg: #12100e;            /* 荒野深夜底 */
+  --bg-panel: #1b1815;      /* 面板底 */
+  --bg-panel-2: #232019;    /* 二级面板底 */
+  --border: #3a342b;        /* 边框 */
+  --text: #e6dccb;          /* 主文字 */
+  --text-dim: #9c9181;      /* 次要文字 */
+  --accent: #d9a441;        /* 主强调（火/铜色） */
+  --ok: #7fbf6a;            /* 绿：成功 */
+  --warn: #d98b41;          /* 橙：警告 */
+  --danger: #c4574b;        /* 红：危险 */
+  --radius: 10px;
+  --gap: 10px;
+  --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+          "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100%;
+}
+
+/* ---------- 整体布局：三段式（顶部资源 / 中部动作 / 底部日志） ---------- */
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--gap);
+  gap: var(--gap);
+}
+
+/* ---------- 顶部：标题 + 资源栏 ---------- */
+.topbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.title .ver { font-size: 12px; color: var(--text-dim); font-weight: 400; }
+
+/* 资源栏：flex 自动换行，手机上也能排开 */
+.resbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+/* 单个资源卡片：由 JS 数据驱动生成 */
+.res {
+  flex: 1 1 70px;
+  min-width: 70px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg-panel-2);
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.res .icon { font-size: 16px; line-height: 1; }
+.res .val { font-variant-numeric: tabular-nums; font-weight: 600; }
+.res .name { font-size: 11px; color: var(--text-dim); }
+
+/* ---------- 状态条：体力 / 饥饿（v1 已有；v2 会追加年龄/温度） ---------- */
+.bars { display: flex; flex-direction: column; gap: 8px; }
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 56px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.bar-row .lab { color: var(--text-dim); white-space: nowrap; }
+.bar-row .track {
+  position: relative;
+  height: 12px;
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bar-row .fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+.bar-row .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+/* 状态色：由 JS 通过 class 切换 */
+.fill.bar-hp    { background: linear-gradient(90deg, #8ec96f, #5fa347); }
+.fill.bar-hunger{ background: linear-gradient(90deg, #d9a441, #b87d2a); }
+.fill.bar-low   { background: linear-gradient(90deg, #d98b41, #c4574b); }
+.fill.bar-zero  { background: linear-gradient(90deg, #c4574b, #8e352c); }
+
+/* ---------- 中部：动作按钮区 ---------- */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+.panel-title {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+/* 动作按钮：数据驱动生成 */
+.act {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 12px;
+  background: var(--bg-panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.06s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.act:active { transform: scale(0.97); }
+.act .act-head { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.act .act-head .icon { font-size: 16px; }
+.act .act-cost { font-size: 11px; color: var(--text-dim); }
+/* 置灰态：体力不足 / 死亡时 */
+.act:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #2a2520;
+}
+/* 关键动作（生火）做视觉强调 */
+.act.act-key { border-color: #5a4a25; }
+.act.act-key:not(:disabled) { background: #2a2318; }
+
+/* ---------- 底部：日志区 ---------- */
+.logbox {
+  flex: 1 1 auto;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  overflow: hidden;
+}
+.logbox .panel-title { flex: 0 0 auto; }
+.log-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 2px;
+  /* 滚动条美化（webkit） */
+  scrollbar-width: thin;
+}
+.log-list::-webkit-scrollbar { width: 6px; }
+.log-list::-webkit-scrollbar-thumb { background: #3a342b; border-radius: 3px; }
+
+/* 日志条目：v1 用「灰 / 绿」两色，预留 data-type 供 v2+ 分类着色 */
+.log-item {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+  word-break: break-word;
+  border-left: 2px solid transparent;
+  padding-left: 7px;
+}
+.log-item .t { color: #6b6355; margin-right: 6px; font-variant-numeric: tabular-nums; }
+/* 类型着色（数据驱动，后续只加 key 即可） */
+.log-item[data-type="good"] { color: var(--ok); border-left-color: var(--ok); }
+.log-item[data-type="bad"]  { color: var(--danger); border-left-color: var(--danger); }
+.log-item[data-type="warn"] { color: var(--warn); border-left-color: var(--warn); }
+.log-item[data-type="info"] { color: var(--text-dim); }
+
+/* ---------- 死亡遮罩 ---------- */
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 7, 6, 0.92);
+  display: none;              /* 由 JS 切换 */
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 99;
+}
+#overlay.show { display: flex; }
+.overlay-card {
+  max-width: 360px;
+  width: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+.overlay-card h2 { margin: 0 0 6px; color: var(--danger); font-size: 20px; }
+.overlay-card p { margin: 0 0 16px; color: var(--text-dim); font-size: 13px; }
+.overlay-card button {
+  width: 100%;
+  padding: 11px;
+  background: var(--accent);
+  color: #1b1815;
+  border: none;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ============================================================
+   【v1.2-iso 渲染层升级】地图区样式（F01）
+   5×5 视口 · Canvas 2.5D 等距投影 · 纯手绘方块 · 零依赖
+   ============================================================ */
+.map-panel { padding-bottom: 12px; }
+
+/* 地图信息条：视野范围 / 坐标 / 当前地块名 */
+.map-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.map-info .mi-coord { font-variant-numeric: tabular-nums; color: var(--text); }
+.map-info .mi-terrain { color: var(--accent); font-weight: 600; }
+
+/* 等距地图画布：正方形、自适应宽度、暗色底；实际像素由 JS 按逻辑宽计算 */
+.map-canvas {
+  display: block;
+  width: 100%;
+  max-width: 460px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  background: #2a2520;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 地图下方提示语 */
+.map-hint {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.45;
+}
+.map-hint .k { color: var(--accent); }
+
+/* ---------- 虚拟摇杆（v1.2 摇杆版新增） ---------- */
+.joy-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:10px;}
+.joystick{position:relative;width:132px;height:132px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#2c2620,#1c1813);border:2px solid var(--border);box-shadow:inset 0 2px 8px rgba(0,0,0,.5);touch-action:none;user-select:none;-webkit-user-select:none;}
+.joy-knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#6f5a2e,#3c3017);border:2px solid var(--accent);box-shadow:0 2px 6px rgba(0,0,0,.6);transition:transform .04s linear;will-change:transform;}
+.joy-tip{font-size:11.5px;color:var(--text-dim);}
+
+/* ---------- 小屏适配 ---------- */
+@media (max-width: 400px) {
+  html, body { font-size: 14px; }
+  .actions { grid-template-columns: 1fr 1fr; }
+  .res { flex: 1 1 60px; min-width: 60px; }
+  .bar-row { grid-template-columns: 56px 1fr 52px; }
+}
+
+/* ---------- 【v1.4】通用决策弹窗 ---------- */
+.decision{position:fixed;inset:0;background:rgba(8,7,6,.9);display:none;align-items:center;justify-content:center;padding:20px;z-index:100;}
+.decision.show{display:flex;}
+.decision-card{max-width:420px;width:100%;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;}
+.decision-card h2{margin:0 0 8px;color:var(--accent);font-size:19px;}
+.decision-card p{margin:0 0 16px;color:var(--text-dim);font-size:13px;line-height:1.5;}
+.dec-opts{display:flex;flex-direction:column;gap:10px;}
+.dec-opt{padding:13px;background:var(--bg-panel-2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-family:inherit;font-size:14px;text-align:left;cursor:pointer;transition:transform .06s ease,border-color .15s ease;}
+.dec-opt:active{transform:scale(.98);}
+.dec-opt .do-label{font-weight:600;}
+.dec-opt .do-hint{display:block;margin-top:3px;font-size:11.5px;color:var(--text-dim);}
+</style>
+
+  <!-- 【v1.4】PWA 可安装：manifest + 移动端元信息 -->
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#15110d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+
+<div id="app">
+  <!-- 顶部：标题 + 资源栏 + 状态条（由 JS 渲染填充） -->
+  <header class="topbar">
+    <div class="title">
+      <span>🌍 硬核科技模拟</span>
+      <span class="ver">v1.4 · 控制·决策·可装</span>
+    </div>
+    <div class="resbar"    id="resbar"></div>
+    <div class="bars"      id="bars"></div>
+  </header>
+
+  <!-- 【v1.2 新增】中部：地图区（5×5 视口，由 JS 渲染填充） -->
+  <section class="panel map-panel">
+    <div class="panel-title">🗺️ 视野</div>
+    <div class="map-info" id="mapInfo"></div>
+    <canvas id="mapCanvas" class="map-canvas"></canvas>
+    <div class="map-hint" id="mapHint">
+      拖动🕹️摇杆或点地图<span class="k">相邻格</span>移动 · 走到对应地块再采集 · 📲 安卓 Chrome 菜单可「安装应用」当手游
+    </div>
+    <div class="joy-wrap">
+      <div class="joystick" id="joystick" role="button" aria-label="移动摇杆，拖动向上下左右走一格">
+        <div class="joy-knob" id="joyKnob"></div>
+      </div>
+      <div class="joy-tip">🕹️ 拖动摇杆 / 方向键·WASD 移动</div>
+    </div>
+  </section>
+
+  <!-- 中部：动作按钮区（由 JS 渲染填充） -->
+  <section class="panel">
+    <div class="panel-title">⚡ 操作按键</div>
+    <div class="actions" id="actions"></div>
+  </section>
+
+  <!-- 底部：日志区（由 JS 渲染填充） -->
+  <section class="logbox">
+    <div class="panel-title">事件日志</div>
+    <div class="log-list" id="logList"></div>
+  </section>
+</div>
+
+<!-- 死亡结算遮罩 -->
+<div id="overlay">
+  <div class="overlay-card">
+    <h2 id="ovTitle">你死了</h2>
+    <p id="ovDesc"></p>
+    <button id="ovRestart">重新开始</button>
+  </div>
+</div>
+
+<!-- 【v1.4】通用决策弹窗 -->
+<div id="decision" class="decision">
+  <div class="decision-card">
+    <h2 id="decTitle"></h2>
+    <p id="decDesc"></p>
+    <div class="dec-opts" id="decOpts"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   硬核科技模拟 v1.2 —— 单文件零依赖 · 等距地图版
+   模块分区（后续 v3~v8 均在此结构上扩展）：
+     0. 常量区 CONFIG     —— 版本 / 存储键 / 地图常量 / 数值常量
+     1. 配置区 DATA       —— 资源 / 地块类型表 TILES / 动作定义（数据驱动）
+     2. 状态区 STATE      —— 全局状态对象 + 默认状态工厂 + 工具函数
+     3. 逻辑区 LOGIC      —— 地图生成与查询 / 移动 / 动作执行 / tick / 死亡判定
+     4. 渲染区 RENDER     —— 资源栏 / 状态条 / 地图 / 动作按钮 / 日志
+     5. 存档区 SAVE       —— 存档读档 / 字段容错 / v2→v3 迁移 / 自动存档
+     6. 启动区 BOOT       —— 事件绑定 / 主循环 / 初始化
+
+   【v1.1 修复记录】
+     · Bug1：canDoAction 只接受「动作对象」，调用方传 id 字符串 → 体力校验被跳过。
+             修复：入参归一化（id / 对象 / 非法值）。
+     · Bug2：饿死判定与设计不符。修复：starveTimer 挨饿计时器 + STARVE_LIMIT_TICKS。
+
+   【v1.2-iso 渲染层升级 · 地图版 → Canvas 等距】
+     · L1 生存层 + L2 移动层雏形：20×20 程序生成地图 + 玩家坐标 + 地块资源点 + 移动（逻辑不变）。
+     · 数据驱动：地块类型 / 动作白名单全部走配置数组（TILES / ACTIONS.terrain）。
+     · 原子性：moveTo 先全量只读校验（canMoveTo），再统一提交，杜绝半改状态（R2）。
+     · 渲染升级：DOM 网格 → Canvas 2.5D 等距投影手绘方块，tick 绝不碰画布（R4）。
+     · 存档兼容：v2 老档迁移时现场生成地图，老数值原封不动，迁移后仍走出生点友好化（R5）。
+   ============================================================ */
+'use strict';
+
+/* ============================================================
+   0. 常量区 CONFIG
+   ============================================================ */
+
+/** 存档结构版本号。v2/v3 改结构时递增，并在 migrateSave() 中做兼容。 */
+const SAVE_VERSION = 3;
+
+/** localStorage 键名。 */
+const STORAGE_KEY = 'hardcore_tech_sim_save';
+
+/* ---------- 【v1.2 新增】地图常量（F02）---------- */
+
+/** 地图宽度（格）。 */
+const MAP_W = 20;
+/** 地图高度（格）。 */
+const MAP_H = 20;
+/** 地图总格数（冗余派生，便于校验）。 */
+const MAP_SIZE = MAP_W * MAP_H;
+
+/**
+ * 视野渲染半径（Q1 拍板：2 → 5×5 视口）。
+ * 渲染层只绘制 (2R+1)² 个格子；数据层永远持有完整 400 格。
+ */
+const VIEW_R = 2;
+
+/**
+ * 【v1.2-iso】等距方块侧高系数：侧面高度 = TILE_W × 该系数。
+ * 非真实透视，而是等距手绘厚度感；系数越大越立体。
+ */
+const TILE_TH_FACTOR = 0;
+
+/**
+ * 【v1.2-iso】等距投影（纯函数，参数显式传入，便于 node 测试）。
+ * 公式：x = ox + (dx - dy) * tw / 2; y = oy + (dx + dy) * th / 2
+ * @returns {{x:number, y:number}}
+ */
+function isoProject(dx, dy, ox, oy, tw, th) {
+  return {
+    x: ox + (dx - dy) * tw / 2,
+    y: oy + (dx + dy) * th / 2
+  };
+}
+
+/**
+ * 【v1.2-iso】屏幕坐标 → 等距格子（纯函数，isoProject 的逆运算）。
+ * 四舍五入后夹紧到 [-VIEW_R, VIEW_R]，保证点击命中等距格。
+ * @returns {{dx:number, dy:number}}
+ */
+function screenToTile(sx, sy, ox, oy, tw, th) {
+  const dx = Math.round((sx - ox) / tw + (sy - oy) / th);
+  const dy = Math.round((sy - oy) / th - (sx - ox) / tw);
+  return {
+    dx: clamp(dx, -VIEW_R, VIEW_R),
+    dy: clamp(dy, -VIEW_R, VIEW_R)
+  };
+}
+
+/**
+ * 【v1.2-iso】把十六进制颜色按比例调暗/调亮（纯函数）。
+ * factor < 1 变暗，factor === 1 不变；返回 'rgb(r,g,b)' 字符串。
+ * @param {string} hex 形如 '#2f6b3a' 或 '#abc'
+ * @param {number} factor
+ * @returns {string}
+ */
+function shade(hex, factor) {
+  let h = (typeof hex === 'string') ? hex.replace('#', '') : '000000';
+  if (h.length === 3) {
+    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  }
+  const r = parseInt(h.slice(0, 2), 16) || 0;
+  const g = parseInt(h.slice(2, 4), 16) || 0;
+  const b = parseInt(h.slice(4, 6), 16) || 0;
+  const f = (typeof factor === 'number' && isFinite(factor)) ? factor : 1;
+  const nr = Math.max(0, Math.min(255, Math.round(r * f)));
+  const ng = Math.max(0, Math.min(255, Math.round(g * f)));
+  const nb = Math.max(0, Math.min(255, Math.round(b * f)));
+  return `rgb(${nr},${ng},${nb})`;
+}
+
+
+/**
+ * 出生点（Q4/§3.5）：固定在 (10,10)，保证开局身边有资源。
+ */
+const SPAWN_X = 10;
+const SPAWN_Y = 10;
+
+/**
+ * 四邻居方向偏移表（§7.2 唯一权威，禁止各处手写 ±1）。
+ * 顺序：北 / 南 / 西 / 东。
+ */
+const DIRS = [
+  { dx: 0,  dy: -1, icon: '⬆️', label: '北' },
+  { dx: 0,  dy:  1, icon: '⬇️', label: '南' },
+  { dx: -1, dy:  0, icon: '⬅️', label: '西' },
+  { dx: 1,  dy:  0, icon: '➡️', label: '东' }
+];
+
+/**
+ * 时间缩放常量（预留扩展点）。
+ * v1 尚未真正推进时间（无 tick 真实流逝），但所有耗时/消耗都以
+ * 「游戏秒」为单位表达，v2 接入真实时钟后直接乘 TIME_SCALE 即可。
+ * 值越大 = 时间流逝越快。
+ */
+const TIME_SCALE = 1.0;
+
+/** 基础数值常量（集中管理，避免散落魔法数字）。 */
+const NUM = {
+  START_AGE: 20,          // 初始年龄（v2 启用）
+  LIFE_MIN: 60,           // 寿命下限（v2 启用）
+  LIFE_MAX: 80,           // 寿命上限（v2 启用）
+  START_STAMINA: 100,     // 初始体力
+  START_HUNGER: 100,      // 初始饥饿
+  MAX_STAMINA: 100,       // 体力上限
+  MAX_HUNGER: 100,        // 饥饿上限
+
+  // —— 空闲时间流逝（每次 tick 触发，硬核：挂机会掉饥饿）——
+  TICK_MS: 1000,              // 主循环间隔（毫秒，真实时间）
+  HUNGER_PER_TICK: 0.15,      // 每 tick 饥饿自然下降
+  STARVE_STAMINA_PER_TICK: 0.6, // 饥饿归零后，每 tick 额外扣体力
+
+  // —— 挨饿计时 / 饿死判定（v1.1 新增）——
+  // 饥饿归零后开始累计挨饿时长；累计超过 STARVE_LIMIT_TICKS 判定「饿死」。
+  // 换算：30 游戏分钟（= 1800 游戏秒）。以 TICK_MS/TIME_SCALE 为每 tick 真实耗时，
+  //      1800 秒 ÷ 1 秒/次 ≈ 1800 tick ≈ 真实 30 分钟，给玩家充足补救时间。
+  STARVE_LIMIT_SECONDS: 1800, // 挨饿宽限时长（游戏秒，30 分钟）
+  STARVE_WARN_INTERVAL: 5,    // 每隔多少 tick 提醒一次「饿得头晕眼花」
+
+  // —— 睡觉恢复 ——
+  SLEEP_HUNGER_COST: 8,   // 睡一觉的饥饿代价（睡觉也要消耗，硬核）
+  RESTORE_ON_EMPTY_GAIN: 35, // 体力耗尽被强制休息时恢复的体力（强制休息收益更低）
+
+  // —— 日志上限 ——
+  LOG_MAX: 80,
+
+  // —— 【v1.2 新增】移动相关（F02）——
+  // 说明：单步移动的体力成本来自「目标地块」的 TILES[].staminaCost（Q4/Q5），
+  //       此处只放与地形无关的全局上下限与视野常量，避免魔法数字散落。
+  MOVE_MIN_COST: 0,           // 单步移动成本下限（草原 -1 也不倒扣体力，硬核兜底）
+  MOVE_MAX_COST: 100,         // 单步移动成本上限（防御：配置写错时不至于一次清空体力）
+  REVEAL_PAD: 1               // 视野扩散额外半径（revealAround 用 R + 1，看得比走得多一点）
+};
+
+/**
+ * 派生常量：挨饿计时器阈值（以 tick 为单位）。
+ * 之所以派生而不写死：TICK_MS 或 TIME_SCALE 调整时无需改这里。
+ * 每次 tick 真实耗时 = TICK_MS / TIME_SCALE（毫秒）。
+ * STARVE_LIMIT_SECONDS（游戏秒）× 1000 / 每 tick 毫秒 = 需要多少个 tick。
+ */
+const STARVE_LIMIT_TICKS = Math.max(
+  1,
+  Math.round(NUM.STARVE_LIMIT_SECONDS * 1000 / (NUM.TICK_MS / TIME_SCALE))
+);
+// 把派生值回填进 NUM，方便外部（测试/调试）也能读到，且满足「阈值定义在 NUM 表」的约束。
+NUM.STARVE_LIMIT_TICKS = STARVE_LIMIT_TICKS;
+
+/* ============================================================
+   1. 配置区 DATA —— 全部数据驱动，禁止写死重复 HTML
+   ============================================================ */
+
+/**
+ * 地块类型定义表（F03，数据驱动，Q5）。
+ * 字段：
+ *   id          : 地块类型标识（存进 tile.t）
+ *   icon        : emoji 图标（渲染用）
+ *   name        : 中文名（日志/信息条用）
+ *   desc        : 说明（悬浮提示用）
+ *   weight      : 生成权重（genTerrainWeighted 加权抽样）
+ *   walkable    : 是否可进入（false = 障碍）
+ *   staminaCost : 进入该地块的体力消耗（负数 = 省力，Q4）
+ *   spawn       : 生成时的初始资源区间 { 资源key: [min,max] }（Q5，禁止硬编码到逻辑里）
+ *
+ * 新增地块只需往此数组加一项；渲染层 / 逻辑层均无需改动。
+ */
+const TILES = [
+  {
+    id: 'forest', icon: '🌲', name: '森林', desc: '树木茂密，木料充足',
+    color: '#4caf50',
+    weight: 30, walkable: true, staminaCost: 0,
+    spawn: { wood: [6, 12], food: [2, 5] }
+  },
+  {
+    id: 'mountain', icon: '⛰️', name: '山地', desc: '岩石裸露，难走但矿产多',
+    color: '#b0b0b5',
+    weight: 20, walkable: true, staminaCost: 3,
+    spawn: { stone: [6, 14] }
+  },
+  {
+    id: 'river', icon: '🏞️', name: '河谷', desc: '水源充足，食物丰富',
+    color: '#4fc3f7',
+    weight: 20, walkable: true, staminaCost: 1,
+    spawn: { food: [6, 12] }
+  },
+  {
+    id: 'plain', icon: '🌾', name: '草原', desc: '平坦开阔，适合赶路',
+    color: '#e6c66c',
+    weight: 30, walkable: true, staminaCost: -1,
+    spawn: { food: [2, 4] }
+  }
+  // 预留：v1.3+ 可扩展 water(障碍) / swamp / ruins，表结构已支持
+];
+
+/** 迷雾地块展示图标（未探索）。 */
+const FOG_ICON = '🌫️';
+
+/** 玩家图标。 */
+const PLAYER_ICON = '🧍';
+
+/**
+ * 按 id 查地块类型定义（R6：带兜底，找不到返回 plain）。
+ * @param {string} id
+ * @returns {object} 地块类型定义（永不返回 undefined）
+ */
+function TILE_BY_ID(id) {
+  return TILES.find(t => t.id === id) || TILES.find(t => t.id === 'plain') || TILES[0];
+}
+
+/**
+ * 按 id 取地块中文名（R6 兜底）。
+ * @param {string} id
+ * @returns {string}
+ */
+function TILE_NAME(id) {
+  return TILE_BY_ID(id).name;
+}
+
+/**
+ * 按 id 取地块图标（R6 兜底）。
+ * @param {string} id
+ * @returns {string}
+ */
+function TILE_ICON(id) {
+  return TILE_BY_ID(id).icon;
+}
+
+/**
+ * 资源定义表。
+ * key   : 状态对象 resources 中的字段名
+ * icon  : emoji 图标
+ * name  : 中文名
+ * desc  : 悬浮提示（v3 面板可能用）
+ * 后续 v2+ 新增资源只需往此数组加一项，UI 自动渲染。
+ */
+const RESOURCES = [
+  { key: 'wood',  icon: '🪵', name: '木',   desc: '树枝、木料' },
+  { key: 'stone', icon: '🪨', name: '石',   desc: '石块、燧石' },
+  { key: 'food',  icon: '🍖', name: '食物', desc: '浆果、兽肉' },
+  { key: 'fire',  icon: '🔥', name: '火',   desc: '篝火（持久度）' }
+];
+
+/**
+ * 状态条定义表（体力 / 饥饿）。
+ * v2 追加 age / temperature 时，只需往此数组加项即可自动渲染。
+ * key   : 对应 state 字段
+ * color : CSS class（配色）
+ */
+const BARS = [
+  { key: 'stamina', icon: '⚡', name: '体力', cls: 'bar-hp',     maxKey: 'MAX_STAMINA' },
+  { key: 'hunger',  icon: '🍖', name: '饥饿', cls: 'bar-hunger', maxKey: 'MAX_HUNGER'  }
+];
+
+/**
+ * 动作定义表（数据驱动）。
+ * id       : 唯一标识
+ * icon/name: 显示
+ * cost     : 消耗 { stamina, hunger }（可为负 = 恢复）
+ * gain     : 产出 { resources: {...}, hunger: n, stamina: n|-~ }
+ * timeCost : 该动作名义耗时（游戏秒）。v1 立即结算，但结构已预留，
+ *            v2 会把它变成真实进度条时长。
+ * log      : 成功时的日志模板（{n} 为产出数量、{res} 为资源名）
+ * logType  : 日志类型（good / info / warn）
+ * key      : 是否为核心动作（做视觉强调）
+ * feed     : 是否属于「进食/补给」动作（成功后可重置挨饿计时器）
+ * minRoll  : 单次产出随机区间 [min, max]（硬核：产量随机，非固定）
+ *
+ * 【v1.2 新增字段（F04，§7.4 白名单约定）】
+ * terrain  : 地块白名单数组。玩家必须站在 id ∈ terrain 的地块上才能执行。
+ *            空数组 [] = 随处可做（如生火 / 睡觉）。
+ * depletes : 是否扣减「当前地块」的资源点 tile.a。
+ *            true  = 采集类动作，执行后 tile.a -= 1，归零则地块灰化（Q3）。
+ *            false = 生火 / 睡觉等，不消耗地块。
+ */
+const ACTIONS = [
+  {
+    id: 'gather_wood',
+    icon: '🪵',
+    name: '捡木棍',
+    terrain: ['forest'],        // 【v1.2】只有森林能捡木
+    depletes: true,             // 【v1.2】采集类 → 扣地块资源
+    cost: { stamina: 8,  hunger: 0 },
+    gain: { resources: { wood: [1, 3] } },
+    timeCost: 30,
+    log: '你弯腰捡了些木棍，得到 {n} 根木。',
+    logType: 'good'
+  },
+  {
+    id: 'mine_stone',
+    icon: '🪨',
+    name: '敲石头',
+    terrain: ['mountain'],      // 【v1.2】只有山地能敲石
+    depletes: true,             // 【v1.2】
+    cost: { stamina: 12, hunger: 0 },
+    gain: { resources: { stone: [1, 2] } },
+    timeCost: 45,
+    log: '你抡起手臂砸向岩壁，得到 {n} 块石头。',
+    logType: 'good'
+  },
+  {
+    id: 'gather_food',
+    icon: '🍖',
+    name: '采集食物',
+    terrain: ['forest', 'river', 'plain'],  // 【v1.2】森林/河谷/草原都能找吃的
+    depletes: true,                         // 【v1.2】
+    cost: { stamina: 10, hunger: 0 },
+    gain: { resources: { food: [1, 2] }, hunger: 5 },
+    timeCost: 40,
+    log: '你在灌木丛里找到 {n} 份食物，顺手填了两口。',
+    logType: 'good',
+    feed: true   // 有进食行为 → 成功后可重置挨饿计时器
+  },
+  {
+    id: 'make_fire',
+    icon: '🔥',
+    name: '钻木取火',
+    terrain: [],        // 【v1.2】随处可做
+    depletes: false,    // 【v1.2】不消耗地块
+    cost: { stamina: 20, hunger: 5 },
+    gain: { resources: { fire: [1, 1] } },
+    timeCost: 90,
+    // 硬核：生火有失败率（v1 用固定 70% 成功，v2 会随环境/工具提高）
+    successRate: 0.7,
+    log: '你双手飞旋木棍，终于钻出一簇火苗！火 +1。',
+    failLog: '钻了半天，木屑只冒烟不着火……你太累了。',
+    logType: 'good',
+    key: true
+  },
+  {
+    id: 'sleep',
+    icon: '😴',
+    name: '睡觉休息',
+    terrain: [],        // 【v1.2】随处可做
+    depletes: false,    // 【v1.2】不消耗地块
+    cost: { stamina: 0, hunger: 0 },
+    gain: { stamina: [40, 60], hunger: -NUM.SLEEP_HUNGER_COST },
+    timeCost: 480,
+    log: '你蜷在树下睡了一觉，体力恢复 {n}，但肚子更饿了。',
+    logType: 'info',
+    feed: true   // 睡觉后恢复体力，视为有效补给 → 重置挨饿计时器
+  }
+];
+
+/* ============================================================
+   2. 状态区 STATE —— 全局状态对象 + 默认状态工厂
+   ============================================================ */
+
+/**
+ * 默认状态工厂：返回一个全新的初始状态对象。
+ * 设计原则：所有字段都有默认值，方便读档容错（缺字段 = 取默认）。
+ * 后续 v2 在此追加 age / lifespan / day / template 等字段即可。
+ */
+function createDefaultState() {
+  return {
+    /* —— 存档元信息 —— */
+    saveVersion: SAVE_VERSION,   // 存档结构版本号（兼容用）
+    createdAt: Date.now(),       // 本次存档创建时间
+
+    /* —— 玩家核心数值 —— */
+    stamina: NUM.START_STAMINA,  // 体力
+    hunger: NUM.START_HUNGER,    // 饥饿（0 = 饿死边缘）
+
+    /* —— 挨饿计时（v1.1 新增）——
+       hunger 归零后每个 tick +1；进食/睡觉成功则清零。
+       超过 NUM.STARVE_LIMIT_TICKS → 判「饿死」。 */
+    starveTimer: 0,
+
+    /* —— 预留扩展字段（v2 启用，v1 先占位使存档结构稳定）—— */
+    age: NUM.START_AGE,          // 年龄（v2 计入流逝）
+    lifespan: 0,                 // 寿命（0 表示尚未随机，v2 首次进游戏时 roll 60~80）
+    day: 1,                      // 存活天数（v2 启用）
+    temperature: 'normal',       // 温度状态：normal / cold / freezing（v2 启用）
+
+    /* —— 资源 —— */
+    resources: {
+      wood: 0,
+      stone: 0,
+      food: 0,
+      fire: 0
+    },
+
+    /* —— 日志（结构 { t: 时间戳, text, type }）—— */
+    logs: [],
+
+    /* —— 生死状态 —— */
+    dead: false,
+    causeOfDeath: '',
+
+    /* —— 统计（便于调试与后续成就系统）—— */
+    stats: { ticks: 0, actions: 0 },
+
+    /* —— 【v1.4】决策系统 —— */
+    decisionsSeen: [],   // 已触发过的决策 id（去重，每个只弹一次）
+    decisionOpen: false, // 决策窗口是否打开（运行时态，重载后强制关闭）
+
+    /* —— 【v1.2 新增】地图层（F05）——
+       seed   : 地图随机种子（同 seed → 同地图，可复现）
+       player : 玩家坐标 + 累计步数（覆盖层，不塞进 tile）
+       map    : 扁平 Tile[400]，索引公式 index = y * MAP_W + x（§7.2） */
+    seed: createSeed(),
+    player: { x: SPAWN_X, y: SPAWN_Y, moved: 0 },
+    map: makeMap(createSeed())
+  };
+}
+
+/**
+ * 【v1.2】生成一个随机种子。
+ * 优先用高精度时间戳 + 随机数，避免连点重开时 seed 撞车。
+ * @returns {number}
+ */
+function createSeed() {
+  return Date.now() + Math.floor(Math.random() * 100000);
+}
+
+/** 全局唯一状态对象。所有逻辑读写此对象。 */
+let state = createDefaultState();
+
+/** 主循环定时器句柄。 */
+let tickTimer = null;
+
+/* ============================================================
+   3. 逻辑区 LOGIC
+   ============================================================ */
+
+/**
+ * 数值夹取，保证在 [min, max] 之间。
+ * @param {number} v
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+function clamp(v, min, max) {
+  if (typeof v !== 'number' || !isFinite(v)) return min;
+  return Math.max(min, Math.min(max, v));
+}
+
+/**
+ * 在 [min, max] 区间取随机整数（含端点）。
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+function randInt(min, max) {
+  const lo = Math.ceil(min);
+  const hi = Math.floor(max);
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+}
+
+/**
+ * 从产出定义中解析数量。支持两种写法：
+ *   数字        → 固定值
+ *   [min, max]  → 随机区间
+ * @param {number|number[]} spec
+ * @returns {number}
+ */
+function rollGain(spec) {
+  if (Array.isArray(spec)) return randInt(spec[0], spec[1]);
+  if (typeof spec === 'number') return spec;
+  return 0;
+}
+
+/* ============================================================
+   3.1 地图族 LOGIC（F06 / F07 / F08）—— v1.2 新增
+   坐标约定严格遵守 §7.2：
+     原点左上角，x 右增，y 下增；index = y * MAP_W + x；
+     越界统一返回 null / false，禁止抛异常；
+     边界检查一律走 inBounds()，禁止裸比较。
+   ============================================================ */
+
+/**
+ * 带种子的伪随机数生成器（mulberry32）。
+ * 特性：纯函数式状态推进，同 seed 必然产出同序列（可复现地图）。
+ * @param {number} seed
+ * @returns {() => number} 每次调用返回 [0, 1) 的浮点数
+ */
+function makeRng(seed) {
+  // 用 >>> 0 归一到 32 位无符号，保证不同平台一致；seed 非法则退化为 1
+  let a = (typeof seed === 'number' && isFinite(seed)) ? (seed >>> 0) : 1;
+  if (a === 0) a = 1;  // 避免全零状态退化成常量序列
+  return function rng() {
+    a |= 0;
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * 索引公式（§7.2 唯一权威）：index = y * MAP_W + x。
+ * @param {number} x
+ * @param {number} y
+ * @returns {number}
+ */
+function idx(x, y) {
+  return y * MAP_W + x;
+}
+
+/**
+ * 边界检查（§7.2：禁止裸比较）。
+ * @param {number} x
+ * @param {number} y
+ * @returns {boolean}
+ */
+function inBounds(x, y) {
+  return Number.isInteger(x) && Number.isInteger(y) &&
+         x >= 0 && x < MAP_W && y >= 0 && y < MAP_H;
+}
+
+/**
+ * 取地块（越界返回 null，永不抛错，§7.2-⑤）。
+ * @param {number} x
+ * @param {number} y
+ * @returns {{t:string,a:number,seen:boolean,b:null}|null}
+ */
+function tileAt(x, y) {
+  if (!inBounds(x, y)) return null;
+  const arr = state.map;
+  if (!Array.isArray(arr)) return null;
+  const t = arr[idx(x, y)];
+  return t || null;
+}
+
+/**
+ * 取玩家当前所在地块。
+ * @returns {{t:string,a:number,seen:boolean,b:null}|null}
+ */
+function tileHere() {
+  if (!state.player) return null;
+  return tileAt(state.player.x, state.player.y);
+}
+
+/**
+ * 取某格的 4 邻居（已过滤越界）。
+ * @param {number} x
+ * @param {number} y
+ * @returns {{x:number,y:number,dir:object,tile:object}[]}
+ */
+function neighborsOf(x, y) {
+  const out = [];
+  for (const dir of DIRS) {
+    const nx = x + dir.dx;
+    const ny = y + dir.dy;
+    if (!inBounds(nx, ny)) continue;
+    out.push({ x: nx, y: ny, dir: dir, tile: tileAt(nx, ny) });
+  }
+  return out;
+}
+
+/**
+ * 是否相邻（曼哈顿距离 === 1）。
+ * @param {number} x
+ * @param {number} y
+ * @returns {boolean}
+ */
+function isAdjacent(x, y) {
+  if (!state.player) return false;
+  const dx = Math.abs(x - state.player.x);
+  const dy = Math.abs(y - state.player.y);
+  return (dx + dy) === 1;
+}
+
+/**
+ * 从 offset 方向反查「从上一步到本步」的方向标签（用于日志）。
+ * @param {number} dx
+ * @param {number} dy
+ * @returns {string} 北/南/西/东，找不到返回 ''
+ */
+function dirLabel(dx, dy) {
+  const d = DIRS.find(v => v.dx === dx && v.dy === dy);
+  return d ? d.label : '';
+}
+
+/**
+ * 按权重生成一个地块类型 id（§3.4 genTerrainWeighted）。
+ * @param {() => number} rng 随机源（[0,1)）
+ * @returns {string} 地块类型 id
+ */
+function genTerrainWeighted(rng) {
+  // 总权重（每次生成时算，避免 TILES 改动后还要同步常量）
+  let total = 0;
+  for (const t of TILES) total += (typeof t.weight === 'number' && t.weight > 0) ? t.weight : 0;
+  if (total <= 0) return TILE_BY_ID('plain').id;  // 权重全非法 → 兜底草原
+
+  let r = rng() * total;
+  for (const t of TILES) {
+    const w = (typeof t.weight === 'number' && t.weight > 0) ? t.weight : 0;
+    r -= w;
+    if (r < 0) return t.id;
+  }
+  // 浮点误差兜底：返回最后一个有权重的地块
+  for (let i = TILES.length - 1; i >= 0; i--) {
+    if (TILES[i].weight > 0) return TILES[i].id;
+  }
+  return TILE_BY_ID('plain').id;
+}
+
+/**
+ * 依据地块类型定义，生成该地块的初始资源量（取 spawn 各资源区间最大值之和）。
+ * 之所以「求和」而非「取单值」：单个 tile.a 是标量，用总量表达这片地能采几次。
+ * @param {string} terrainId
+ * @param {() => number} rng
+ * @returns {number}
+ */
+function genResourceAmount(terrainId, rng) {
+  const def = TILE_BY_ID(terrainId);
+  const spawn = def.spawn || {};
+  let sum = 0;
+  for (const key in spawn) {
+    const spec = spawn[key];
+    if (Array.isArray(spec)) {
+      sum += Math.floor(rng() * (spec[1] - spec[0] + 1)) + spec[0];
+    } else if (typeof spec === 'number') {
+      sum += spec;
+    }
+  }
+  return sum > 0 ? sum : 0;
+}
+
+/**
+ * 生成一张 20×20 地图（扁平 Tile[400]）。
+ * 保证：① 同 seed 结果完全一致；② 出生点友好化（§3.5）。
+ * @param {number} seed
+ * @returns {{t:string,a:number,seen:boolean,b:null}[]}
+ */
+function makeMap(seed) {
+  const rng = makeRng(seed);
+  const tiles = [];
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      const t = genTerrainWeighted(rng);
+      tiles.push({
+        t: t,
+        a: genResourceAmount(t, rng),
+        seen: false,
+        b: null
+      });
+    }
+  }
+  // —— 出生点友好化（R3 / R5：单独抽函数，迁移时也复用）——
+  applySpawnFriendly(tiles);
+  return tiles;
+}
+
+/**
+ * 出生点友好化补丁（R3 / R5，§3.5）。
+ * 作用对象：任意传入的 400 格数组（就地修改）。
+ * 规则：① (10,10) 固定为森林且至少 10 份木料；
+ *       ② 4 邻居若资源为 0 则补足保底资源；
+ *       ③ 保证出生点周围至少有「森林 + 河谷」各一处，避免开局无食无水。
+ * @param {Array} tiles 400 格数组
+ */
+function applySpawnFriendly(tiles) {
+  if (!Array.isArray(tiles) || tiles.length !== MAP_SIZE) return;
+
+  // ① 出生格：固定森林 + 保底 10 份木料
+  const homeIdx = idx(SPAWN_X, SPAWN_Y);
+  tiles[homeIdx].t = TILE_BY_ID('forest').id;
+  const homeWood = TILE_BY_ID('forest').spawn.wood || [10, 10];
+  const homeMin = Array.isArray(homeWood) ? homeWood[0] : 10;
+  tiles[homeIdx].a = Math.max(numOr(tiles[homeIdx].a, 0), homeMin, 10);
+  tiles[homeIdx].seen = true;
+
+  // ② 四邻居：修资源 + 保底类型（避免出生即被山地/荒格包围）
+  const neighbors = neighborsOfIn(tiles, SPAWN_X, SPAWN_Y);
+  for (const n of neighbors) {
+    const tile = tiles[idx(n.x, n.y)];
+    if (!tile) continue;
+    const def = TILE_BY_ID(tile.t);
+    // 不可走地块（含未来障碍）→ 强制改为可走的森林，保证不被卡死
+    if (!def.walkable) tile.t = TILE_BY_ID('forest').id;
+    // 资源为 0 → 补足该地形的保底资源（取 spawn 各资源下界之和）
+    if (numOr(tile.a, 0) <= 0) {
+      const d = TILE_BY_ID(tile.t);
+      let base = 0;
+      for (const k in (d.spawn || {})) {
+        const spec = d.spawn[k];
+        base += (Array.isArray(spec) ? spec[0] : (typeof spec === 'number' ? spec : 0));
+      }
+      tile.a = Math.max(base, 2);
+    }
+    tile.seen = true;
+  }
+
+  // ③ 若出生点 4 邻居里既没有森林也没有河谷 → 把北/南邻居改成森林+河谷
+  const hasForest = neighbors.some(n => tiles[idx(n.x, n.y)].t === TILE_BY_ID('forest').id);
+  const hasRiver  = neighbors.some(n => tiles[idx(n.x, n.y)].t === TILE_BY_ID('river').id);
+  if (!hasForest && neighbors.length > 0) {
+    tiles[idx(neighbors[0].x, neighbors[0].y)].t = TILE_BY_ID('forest').id;
+  }
+  if (!hasRiver && neighbors.length > 1) {
+    tiles[idx(neighbors[1].x, neighbors[1].y)].t = TILE_BY_ID('river').id;
+  }
+}
+
+/**
+ * 给定地图数组的 4 邻居（与 neighborsOf 逻辑一致，但作用于传入数组，供 makeMap 期使用）。
+ * @param {Array} tiles
+ * @param {number} x
+ * @param {number} y
+ * @returns {{x:number,y:number,dir:object}[]}
+ */
+function neighborsOfIn(tiles, x, y) {
+  const out = [];
+  for (const dir of DIRS) {
+    const nx = x + dir.dx;
+    const ny = y + dir.dy;
+    if (!inBounds(nx, ny)) continue;
+    out.push({ x: nx, y: ny, dir: dir });
+  }
+  return out;
+}
+
+/**
+ * 视野扩散：把 (x,y) 周围半径 R + REVEAL_PAD 的地块标记为「已探索」。
+ * 副作用仅限 tile.seen / tile.a 兜底修正，不做渲染（渲染交给调用方）。
+ * @param {number} x
+ * @param {number} y
+ */
+function revealAround(x, y) {
+  if (!Array.isArray(state.map)) return;
+  const R = VIEW_R + (NUM.REVEAL_PAD || 0);
+  for (let dy = -R; dy <= R; dy++) {
+    for (let dx = -R; dx <= R; dx++) {
+      const tx = x + dx;
+      const ty = y + dy;
+      if (!inBounds(tx, ty)) continue;
+      const tile = state.map[idx(tx, ty)];
+      if (tile && !tile.seen) tile.seen = true;
+    }
+  }
+}
+
+/**
+ * 移动只读校验（F08，§3.4）。
+ * 纯函数：不改动任何 state 字段。所有可能的失败分支都在这里。
+ * @param {number} x 目标格 x
+ * @param {number} y 目标格 y
+ * @returns {{ok:boolean, reason:string, cost:number, label:string}}
+ */
+function canMoveTo(x, y) {
+  // —— R2：死亡保护（时序竞争）——
+  if (state.dead) {
+    return { ok: false, reason: '你已死去', cost: 0, label: '' };
+  }
+  if (!state.player) {
+    return { ok: false, reason: '玩家坐标缺失', cost: 0, label: '' };
+  }
+  // 越界
+  if (!inBounds(x, y)) {
+    return { ok: false, reason: '那里是世界的尽头', cost: 0, label: '' };
+  }
+  // 已在原地
+  if (x === state.player.x && y === state.player.y) {
+    return { ok: false, reason: '你已经在这里了', cost: 0, label: '' };
+  }
+  // 相邻校验（曼哈顿距离 === 1）
+  if (!isAdjacent(x, y)) {
+    return { ok: false, reason: '太远了，只能走到相邻的一格', cost: 0, label: '' };
+  }
+  const tile = tileAt(x, y);
+  if (!tile) {
+    return { ok: false, reason: '那里什么都没有', cost: 0, label: '' };
+  }
+  // 可走性
+  const def = TILE_BY_ID(tile.t);
+  if (!def.walkable) {
+    return { ok: false, reason: `${def.name}爬不过去`, cost: 0, label: '' };
+  }
+  // 体力校验：地形成本（Q4）
+  const rawCost = typeof def.staminaCost === 'number' ? def.staminaCost : 0;
+  const cost = clamp(rawCost, -NUM.MOVE_MAX_COST, NUM.MOVE_MAX_COST);
+  // 只有「正消耗」才需要体力；负数/零成本永远允许（草原省力，硬核兜底）
+  if (cost > 0 && state.stamina <= 0) {
+    return { ok: false, reason: '体力耗尽，走不动了', cost: cost, label: '' };
+  }
+  if (cost > 0 && state.stamina < cost) {
+    return { ok: false, reason: `体力不足（需要 ${cost} 点）`, cost: cost, label: '' };
+  }
+  const label = dirLabel(x - state.player.x, y - state.player.y);
+  return { ok: true, reason: '', cost: cost, label: label };
+}
+
+/**
+ * 执行移动（F08，原子性核心）。
+ * 原子性保证：所有可能失败的判断都在 canMoveTo（Phase 1）；
+ * Phase 2 内绝无 return false，扣体力 / 更新坐标 / 扩散视野「要么全做，要么全不做」。
+ * @param {number} x
+ * @param {number} y
+ * @returns {boolean} 是否移动成功
+ */
+function moveTo(x, y, silent = false) {
+  // —— R2 第一道防线：死亡 / 断点保护，必须在最前面 ——
+  if (state.dead) return false;
+  if (!state.player) return false;
+
+  // ---- Phase 1：全程只读校验（不碰 state）----
+  const check = canMoveTo(x, y);
+  if (!check.ok) {
+    if (!silent) {
+      addLog(`无法移动：${check.reason}`, 'warn');
+      renderAll();
+    }
+    return false;   // ← state 一点没动
+  }
+  const dest = tileAt(x, y);
+  if (!dest) {      // 双保险：Phase 1 已校验，这里兜底不污染状态
+    if (!silent) {
+      addLog('无法移动：目标地块不存在', 'warn');
+      renderAll();
+    }
+    return false;
+  }
+
+  // ---- Phase 2：提交（此后不再有失败分支）----
+  // Q4：按地形扣/回体力；下限 0，上限 MAX_STAMINA；草原负成本回体力
+  state.stamina = clamp(state.stamina - check.cost, 0, NUM.MAX_STAMINA);
+  state.player.x = x;
+  state.player.y = y;
+  state.player.moved = numOr(state.player.moved, 0) + 1;
+
+  // 首次抵达 → 标记已探索 + 视野扩散
+  revealAround(x, y);
+
+  const dirTxt = check.label ? `${check.label}行至` : '移动至';
+  addLog(`你${dirTxt}${TILE_NAME(dest.t)}。`, 'info');
+
+  saveGame();
+  renderAll();
+
+  // 【v1.4】首次抵达特殊地形 → 触发一次性决策（saveGame 在前，避免持久化 decisionOpen=true）
+  const nt = tileHere().t;
+  if (nt === 'mountain') {
+    maybeDecision('arrive_mountain', DECISIONS.arrive_mountain);
+  } else if (nt === 'river') {
+    maybeDecision('arrive_river', DECISIONS.arrive_river);
+  }
+
+  return true;
+}
+
+/**
+ * 当前地块可做的动作列表（F09，§7.4 白名单）。
+ * 规则：动作的 terrain 为空数组 / 未定义 → 随处可做；否则需站在白名单地块上。
+ * @returns {object[]} ACTION_DEF[]
+ */
+function actionsHere() {
+  const tile = tileHere();
+  const hereId = tile ? tile.t : '';
+  const out = [];
+  for (const a of ACTIONS) {
+    const wl = Array.isArray(a.terrain) ? a.terrain : [];
+    if (wl.length === 0 || wl.indexOf(hereId) >= 0) out.push(a);
+  }
+  return out;
+}
+
+/**
+ * 把入参归一化为「动作对象」。
+ * 【v1.1 修复 Bug1 的核心】
+ *   历史上调用方（含自动化测试）会传入 id 字符串，而原实现只接受对象，
+ *   导致 action.cost 为 undefined → 体力校验被整体跳过。
+ *   这里统一处理三种入参：
+ *     - 合法动作对象（含 id 且能匹配到 ACTIONS 中的定义）→ 返回该定义
+ *     - id 字符串 → 查表返回对应动作
+ *     - 其它非法值 → 返回 null
+ * @param {object|string} actionOrId
+ * @returns {object|null}
+ */
+function resolveAction(actionOrId) {
+  if (!actionOrId) return null;
+  // 字符串：按 id 查表
+  if (typeof actionOrId === 'string') {
+    return ACTIONS.find(a => a.id === actionOrId) || null;
+  }
+  // 对象：优先用其 id 去表里取「权威定义」，避免传入残缺对象绕过校验
+  if (typeof actionOrId === 'object') {
+    if (typeof actionOrId.id === 'string') {
+      const found = ACTIONS.find(a => a.id === actionOrId.id);
+      if (found) return found;
+    }
+    // 表中查不到但对象自带 cost 字段 → 允许直接使用（便于扩展/测试自定义动作）
+    if (actionOrId.cost && typeof actionOrId.cost === 'object') return actionOrId;
+  }
+  return null;
+}
+
+/**
+ * 检查某动作当前是否可执行。
+ * 规则（按优先级）：
+ *   1) 玩家已死               → 不可执行
+ *   2) 非法/未知动作          → 不可执行
+ *   3) 需要体力但体力为 0     → 不可执行（提示「体力耗尽，请先睡觉」）
+ *   4) 体力不足以支付本次消耗 → 不可执行（降级策略见下方注释）
+ *
+ * 【降级策略说明（Bug1 要求二选一）】
+ *   本实现选择「硬拦截」而非「按比例降级」：体力 < 动作消耗时直接禁止该动作，
+ *   理由是硬核基调下「半途而废」不符合直觉，且会让产出/消耗难以平衡。
+ *   玩家此时应选择低消耗动作或先睡觉——因此 reason 明确提示原因。
+ *
+ * @param {object|string} actionOrId 动作对象 或 动作 id（两者皆支持）
+ * @returns {{ok: boolean, reason: string}}
+ */
+function canDoAction(actionOrId) {
+  const action = resolveAction(actionOrId);
+  if (state.dead) return { ok: false, reason: '你已死去' };
+  if (!action) return { ok: false, reason: '未知动作' };
+
+  // —— 【v1.2 新增】地块白名单校验（§7.4）——
+  const wl = Array.isArray(action.terrain) ? action.terrain : [];
+  if (wl.length > 0) {
+    const tile = tileHere();
+    const hereId = tile ? tile.t : '';
+    if (wl.indexOf(hereId) < 0) {
+      const names = wl.map(id => TILE_NAME(id)).join(' / ');
+      return { ok: false, reason: `这里没有可采集的${action.name.replace(/^(捡|敲|采集)/, '')}（只能在${names}）` };
+    }
+    // —— 【v1.2 新增】地块资源耗尽校验（Q3）——
+    if (action.depletes && tile && numOr(tile.a, 0) <= 0) {
+      return { ok: false, reason: `这块${TILE_NAME(tile.t)}的资源已经耗尽了` };
+    }
+  }
+
+  const cost = action.cost || {};
+  const needStamina = typeof cost.stamina === 'number' ? cost.stamina : 0;
+
+  // 只有「需要消耗体力」的动作才受体力限制（睡觉等 0 消耗动作永远可做）
+  if (needStamina > 0 && state.stamina <= 0) {
+    return { ok: false, reason: '体力耗尽，请先睡觉' };
+  }
+  if (needStamina > 0 && state.stamina < needStamina) {
+    return { ok: false, reason: '体力不足，请先睡觉恢复' };
+  }
+  return { ok: true, reason: '' };
+}
+
+/**
+ * 执行一个动作（v1：立即结算）。
+ * 完整流程：校验 → 扣体力/饥饿 → 随机产出 → 写日志 → 存档 → 渲染。
+ * @param {string} actionId
+ * @returns {boolean} 是否成功执行
+ */
+function doAction(actionId) {
+  const action = resolveAction(actionId);
+  if (!action) return false;
+
+  const check = canDoAction(action);
+  if (!check.ok) {
+    addLog(`无法「${action.name}」：${check.reason}`, 'warn');
+    renderAll();
+    return false;
+  }
+
+  const cost = action.cost || {};
+  const gain = action.gain || {};
+
+  // --- 扣消耗（体力 / 饥饿）---
+  state.stamina = clamp(state.stamina - (cost.stamina || 0), 0, NUM.MAX_STAMINA);
+  state.hunger  = clamp(state.hunger  - (cost.hunger  || 0), 0, NUM.MAX_HUNGER);
+
+  // --- 生火类动作：先判定成败（硬核：有失败代价）---
+  if (typeof action.successRate === 'number' && Math.random() > action.successRate) {
+    state.stats.actions++;
+    addLog(action.failLog || `尝试「${action.name}」失败，白费了力气。`, 'bad');
+    saveGame();
+    renderAll();
+    return false;
+  }
+
+  // --- 结算产出 ---
+  let mainGain = 0;      // 用于日志模板 {n}
+  let mainResName = '';
+
+  // 资源产出
+  if (gain.resources) {
+    for (const key in gain.resources) {
+      const amount = rollGain(gain.resources[key]);
+      if (amount === 0) continue;
+      if (!(key in state.resources)) state.resources[key] = 0; // 容错：新资源字段
+      state.resources[key] += amount;
+      if (amount > mainGain) {
+        mainGain = amount;
+        const def = RESOURCES.find(r => r.key === key);
+        mainResName = def ? def.name : key;
+      }
+    }
+  }
+  // 体力/饥饿产出（睡觉等）
+  if (typeof gain.stamina !== 'undefined') {
+    const amt = rollGain(gain.stamina);
+    state.stamina = clamp(state.stamina + amt, 0, NUM.MAX_STAMINA);
+    if (mainGain === 0) mainGain = amt;
+  }
+  if (typeof gain.hunger !== 'undefined') {
+    // 负数 = 消耗饥饿
+    state.hunger = clamp(state.hunger + gain.hunger, 0, NUM.MAX_HUNGER);
+  }
+
+  // --- 【v1.2 新增】采集类动作 → 扣减当前地块资源点（Q3 原地灰化）---
+  if (action.depletes) {
+    const tile = tileHere();
+    if (tile) {
+      tile.a = Math.max(0, numOr(tile.a, 0) - 1);
+      if (tile.a <= 0) {
+        addLog(`这片${TILE_NAME(tile.t)}被你薅秃了。`, 'warn');
+      }
+    }
+  }
+
+  state.stats.actions++;
+
+  // --- 写日志（体现代价 action.name + 产出）---
+  let text = action.log || `你完成了「${action.name}」。`;
+  text = text.replace('{n}', String(mainGain)).replace('{res}', mainResName || '资源');
+  addLog(text, action.logType || 'info');
+
+  // --- 【v1.1 修复 Bug2】补给成功 → 重置挨饿计时器 ---
+  // 只要动作被标记为 feed（进食/睡觉），且本次行动让「饥饿得到补充」或「体力回升」，
+  // 就视为脱离了挨饿状态，清零计时器，保证「挨饿归零过久」逻辑自洽。
+  if (action.feed && !state.dead) {
+    if (state.hunger > 0 || (typeof gain.stamina !== 'undefined')) {
+      if (state.starveTimer > 0) {
+        addLog('🍖 你缓过一口气，不再挨饿了。', 'good');
+      }
+      state.starveTimer = 0;
+    }
+  }
+
+  // --- 结果反馈：体力耗尽提示 ---
+  if (state.stamina <= 0 && !state.dead) {
+    addLog('你累瘫了，眼前发黑……必须睡觉了。', 'warn');
+  }
+
+  saveGame();
+  renderMapForce();   // 【v1.2】地块资源点变了（可能灰化）→ 强制刷新地图，跳过脏检查
+  renderAll();
+  return true;
+}
+
+/**
+ * 单次主循环 tick：空闲时间流逝（硬核核心）。
+ * 玩家什么都不做时，饥饿自然下降；饥饿归零后持续扣体力，
+ * 并开始累计「挨饿时长」；累计超过阈值则饿死。
+ * v2 会在此基础上推进年龄 / 天数 / 温度。
+ */
+function tick() {
+  // 【v1.4】决策窗口打开或已死亡时暂停生存时钟
+  if (state.decisionOpen || state.dead) return;
+
+  state.stats.ticks++;
+
+  // 【v1.4】体力见底决策（仅首次）：弹出选择，本 tick 余下逻辑暂停
+  if (!state.decisionsSeen.includes('low_stamina') && state.stamina <= 25) {
+    maybeDecision('low_stamina', DECISIONS.low_stamina);
+    if (state.decisionOpen) return;
+  }
+
+  // 1) 饥饿自然下降
+  if (state.hunger > 0) {
+    state.hunger = clamp(state.hunger - NUM.HUNGER_PER_TICK, 0, NUM.MAX_HUNGER);
+  }
+
+  // 2) 饥饿归零 → 持续扣体力 + 累计挨饿计时
+  if (state.hunger <= 0) {
+    state.stamina = clamp(state.stamina - NUM.STARVE_STAMINA_PER_TICK, 0, NUM.MAX_STAMINA);
+
+    // 【v1.1 修复 Bug2】饥饿归零 → 挨饿计时器累计
+    state.starveTimer = numOr(state.starveTimer, 0) + 1;
+
+    // 定期预警，给玩家补救机会，避免刷屏
+    if (state.starveTimer % NUM.STARVE_WARN_INTERVAL === 0) {
+      addLog('🍖 你饿得头晕眼花，体力在流失……快找点吃的吧！', 'warn');
+    }
+  } else {
+    // 饥饿恢复 → 计时器归零（与 doAction 中的补给重置形成双保险）
+    if (state.starveTimer > 0) state.starveTimer = 0;
+  }
+
+  checkDeath();
+
+  // 渲染（每 tick 刷新状态条数值）
+  renderStatusBars();
+
+  // 每 5 tick 自动存档一次（省性能）
+  if (state.stats.ticks % 5 === 0) saveGame();
+}
+
+/**
+ * 死亡判定（v1.1：饿死——饥饿归零持续过久）。
+ * 规则：state.starveTimer 超过 NUM.STARVE_LIMIT_TICKS → 判「饿死」。
+ * v2 会追加冻死 / 老死。
+ */
+function checkDeath() {
+  if (state.dead) return;
+
+  // 挨饿超时 → 饿死
+  if (numOr(state.starveTimer, 0) >= NUM.STARVE_LIMIT_TICKS) {
+    state.dead = true;
+    state.causeOfDeath = '饿死';
+    addLog('💀 你饿死了。这片荒野又少了一个人。', 'bad', true);
+    saveGame();
+    showOverlay('💀 你饿死了', '饥饿归零太久，你最终倒在了荒野之中。');
+  }
+}
+
+/* ============================================================
+   4. 渲染区 RENDER
+   ============================================================ */
+
+/** 缓存 DOM 引用（避免重复查询）。 */
+const DOM = {
+  resbar:   document.getElementById('resbar'),
+  bars:     document.getElementById('bars'),
+  actions:  document.getElementById('actions'),
+  logList:  document.getElementById('logList'),
+  overlay:  document.getElementById('overlay'),
+  ovTitle:  document.getElementById('ovTitle'),
+  ovDesc:   document.getElementById('ovDesc'),
+  ovRestart:document.getElementById('ovRestart'),
+  // —— 【v1.2-iso】地图相关：改用 canvas ——
+  mapCanvas: document.getElementById('mapCanvas'),
+  mapInfo:  document.getElementById('mapInfo'),
+  mapHint:  document.getElementById('mapHint'),
+  // —— 【v1.2 摇杆版】虚拟摇杆：
+  joystick: document.getElementById('joystick'),
+  joyKnob:  document.getElementById('joyKnob'),
+  // —— 【v1.4】决策弹窗：
+  decision: document.getElementById('decision'),
+  decTitle: document.getElementById('decTitle'),
+  decDesc:  document.getElementById('decDesc'),
+  decOpts:  document.getElementById('decOpts')
+};
+
+/**
+ * 【v1.2-iso】Canvas 等距渲染的模块级变量。
+ * CW/CH 为画布逻辑宽高（CSS 像素，正方形）；DPR 为设备像素比；
+ * mapCtx 为 2D 上下文；TILE_W/H/TH 为等距方块尺寸，由 resizeCanvas() 动态计算。
+ */
+let CW = 0, CH = 0, DPR = 1, mapCtx = null;
+let TILE_W = 60, TILE_H = 30, TILE_TH = 18;  // 兜底值，resizeCanvas 会重算
+
+/** 【v1.2】地图上次渲染签名，用于脏检查（§5.3-⑤），无变化直接跳过。 */
+let lastMapSig = '';
+
+/**
+ * 【v1.2-iso】初始化 / 自适应画布。
+ * 读取 CSS 逻辑宽 → 重算 TILE_W/H/TH → 设置 DPR 变换 → 触发一次 renderMap。
+ * 桩环境（无 canvas / getContext 抛错）下安全退出，不抛异常。
+ */
+function resizeCanvas() {
+  const canvas = DOM.mapCanvas;
+  if (!canvas) return;
+
+  // getContext 用 try/catch 包住，桩环境无 2D 上下文时不崩
+  let ctx = null;
+  try { ctx = canvas.getContext('2d'); } catch (e) { ctx = null; }
+  if (!ctx) return;
+  mapCtx = ctx;
+
+  // 逻辑宽（CSS 像素，正方形）；clientWidth 取不到时回退 360
+  const clientW = (typeof canvas.clientWidth === 'number' && canvas.clientWidth > 0)
+    ? canvas.clientWidth : 360;
+  CW = clientW;
+  CH = clientW;
+  DPR = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+
+  try {
+    canvas.width = Math.floor(CW * DPR);
+    canvas.height = Math.floor(CH * DPR);
+    canvas.style.height = CH + 'px';
+  } catch (e) { /* 忽略：极端环境下不崩 */ }
+
+  // 设置变换，使后续绘制都用 CSS 逻辑坐标（避免手写 DPR 缩放）
+  try { mapCtx.setTransform(DPR, 0, 0, DPR, 0, 0); } catch (e) { /* 忽略 */ }
+
+  // 等距方块尺寸：TILE_W 由画布宽动态推导，不写死
+  TILE_W = Math.floor(CW / (2 * VIEW_R + 1));
+  TILE_H = TILE_W / 2;
+  TILE_TH = Math.round(TILE_W * TILE_TH_FACTOR);
+
+  renderMap();
+}
+
+/**
+ * 【v1.2-iso】绘制单个等距方块（2.5D block）。
+ * 纯 Canvas 手绘：顶面菱形 + 左/右侧面，无需任何图片资源。
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} dx 相对玩家窗口 x（[-R, R]）
+ * @param {number} dy 相对玩家窗口 y（[-R, R]）
+ * @param {number} x  世界坐标 x
+ * @param {number} y  世界坐标 y
+ * @param {object|null} tile 地块对象
+ * @param {number} ox 投影原点 x（画布中心）
+ * @param {number} oy 投影原点 y（画布中心）
+ */
+function drawIsoTile(ctx, dx, dy, x, y, tile, ox, oy) {
+  // 屏幕中心坐标（等距投影）
+  const p = isoProject(dx, dy, ox, oy, TILE_W, TILE_H);
+  const sx = p.x;
+  const sy = p.y;
+
+  // 顶面菱形四顶点
+  const top    = { x: sx,                y: sy - TILE_H / 2 };
+  const right  = { x: sx + TILE_W / 2,   y: sy };
+  const bottom = { x: sx,                y: sy + TILE_H / 2 };
+  const left   = { x: sx - TILE_W / 2,   y: sy };
+
+  // 越界 / 无地块：不画（保持底色透明）
+  if (!tile || !inBounds(x, y)) return;
+
+  const def = TILE_BY_ID(tile.t);
+  const depleted = numOr(tile.a, 0) <= 0;
+
+  // —— 迷雾：未探索 → 暗灰顶面 + 雾图标 ——
+  if (!tile.seen) {
+    ctx.fillStyle = '#272218';
+    fillTop(ctx, top, right, bottom, left);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    strokeTop(ctx, top, right, bottom, left);
+    ctx.fillStyle = '#b8aa88';
+    ctx.font = `${Math.floor(TILE_W * 0.48)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(FOG_ICON, sx, sy);
+    return;
+  }
+
+  // —— 正常地块：顶面 + 左/右侧面（侧面用 shade 生成的明暗色）——
+  const topColor = def.color;
+  const leftColor = shade(def.color, 0.82);
+  const rightColor = shade(def.color, 0.94);
+
+  // 左面
+  ctx.fillStyle = leftColor;
+  ctx.beginPath();
+  ctx.moveTo(left.x, left.y);
+  ctx.lineTo(bottom.x, bottom.y);
+  ctx.lineTo(bottom.x, bottom.y + TILE_TH);
+  ctx.lineTo(left.x, left.y + TILE_TH);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 右面
+  ctx.fillStyle = rightColor;
+  ctx.beginPath();
+  ctx.moveTo(right.x, right.y);
+  ctx.lineTo(bottom.x, bottom.y);
+  ctx.lineTo(bottom.x, bottom.y + TILE_TH);
+  ctx.lineTo(right.x, right.y + TILE_TH);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 顶面
+  ctx.fillStyle = topColor;
+  fillTop(ctx, top, right, bottom, left);
+
+  // 资源耗尽：顶面叠加半透明灰
+  if (depleted) {
+    ctx.fillStyle = 'rgba(20,20,20,0.55)';
+    fillTop(ctx, top, right, bottom, left);
+  }
+
+  // 地块图标
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `${Math.floor(TILE_W * 0.48)}px sans-serif`;
+  if (depleted) ctx.globalAlpha = 0.5;
+  ctx.fillText(TILE_ICON(tile.t), sx, sy);
+  ctx.globalAlpha = 1;
+
+  // 耗尽标记：灰白「✕」
+  if (depleted) {
+    ctx.fillStyle = '#dddddd';
+    ctx.font = `${Math.floor(TILE_W * 0.3)}px sans-serif`;
+    ctx.fillText('✕', sx, sy - TILE_H / 4);
+  }
+
+  // 顶面亮边：让方块从深色背景中弹出
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+  ctx.lineWidth = 2;
+  strokeTop(ctx, top, right, bottom, left);
+
+  // 相邻可走提示：accent 描顶面对角线
+  if (def.walkable && isAdjacent(x, y) && !state.dead) {
+    ctx.strokeStyle = '#d9a441';
+    ctx.lineWidth = 2;
+    strokeTop(ctx, top, right, bottom, left);
+  }
+
+  // 玩家所在格：accent 粗线 + 玩家图标（覆盖在地块图标上）
+  if (dx === 0 && dy === 0) {
+    ctx.strokeStyle = '#d9a441';
+    ctx.lineWidth = 2.5;
+    strokeTop(ctx, top, right, bottom, left);
+    ctx.font = `${Math.floor(TILE_W * 0.58)}px sans-serif`;
+    ctx.fillText(PLAYER_ICON, sx, sy);
+  }
+}
+
+/** 填充顶面菱形。 */
+function fillTop(ctx, top, right, bottom, left) {
+  ctx.beginPath();
+  ctx.moveTo(top.x, top.y);
+  ctx.lineTo(right.x, right.y);
+  ctx.lineTo(bottom.x, bottom.y);
+  ctx.lineTo(left.x, left.y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** 描边顶面菱形。 */
+function strokeTop(ctx, top, right, bottom, left) {
+  ctx.beginPath();
+  ctx.moveTo(top.x, top.y);
+  ctx.lineTo(right.x, right.y);
+  ctx.lineTo(bottom.x, bottom.y);
+  ctx.lineTo(left.x, left.y);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+/**
+ * 【v1.2-iso】渲染地图（Canvas 2.5D 等距）。
+ * 只绘制 5×5 视口（25 格），脏检查跳过无变化帧，tick 绝不调用本函数。
+ */
+function renderMap() {
+  const ctx = mapCtx;
+  if (!ctx) return;  // 桩环境（无 canvas）安全退出
+
+  const cx = state.player ? state.player.x : SPAWN_X;
+  const cy = state.player ? state.player.y : SPAWN_Y;
+
+  // —— 脏检查：玩家坐标 + 死亡态 + 25 格状态串 ——
+  let sig = `${cx},${cy},${state.dead ? 1 : 0}`;
+  const R = VIEW_R;
+  for (let dy = -R; dy <= R; dy++) {
+    for (let dx = -R; dx <= R; dx++) {
+      const tile = tileAt(cx + dx, cy + dy);
+      const t = tile ? tile.t : '?';
+      const a = tile ? (numOr(tile.a, 0) > 0 ? 1 : 0) : 0;
+      const seen = tile ? (tile.seen ? 1 : 0) : 0;
+      sig += `${t}${a}${seen}`;
+    }
+  }
+  if (sig === lastMapSig && lastMapSig !== '') return;  // 无变化 → 跳过
+  lastMapSig = sig;
+
+  // 清屏 + 深色背景
+  ctx.clearRect(0, 0, CW, CH);
+  ctx.fillStyle = '#2a2520';
+  ctx.fillRect(0, 0, CW, CH);
+
+  const ox = CW / 2;
+  const oy = CH / 2;
+
+  // 收集 25 格，按 dx+dy 升序（画家算法：远处先画，近处后画覆盖）
+  const cells = [];
+  for (let dy = -R; dy <= R; dy++) {
+    for (let dx = -R; dx <= R; dx++) {
+      cells.push({
+        dx: dx, dy: dy,
+        x: cx + dx, y: cy + dy,
+        tile: tileAt(cx + dx, cy + dy)
+      });
+    }
+  }
+  cells.sort((a, b) => (a.dx + a.dy) - (b.dx + b.dy));
+  for (const c of cells) {
+    drawIsoTile(ctx, c.dx, c.dy, c.x, c.y, c.tile, ox, oy);
+  }
+
+  // 信息条（视野 / 坐标 / 当前地块名）
+  if (DOM.mapInfo) {
+    const here = tileHere();
+    const def = here ? TILE_BY_ID(here.t) : null;
+    DOM.mapInfo.innerHTML =
+      `<span>🗺️ 视野 ${VIEW_R * 2 + 1}×${VIEW_R * 2 + 1}</span>` +
+      `<span class="mi-coord">坐标 (${cx}, ${cy})</span>` +
+      `<span class="mi-terrain">${def ? def.icon + ' ' + def.name : '—'}</span>`;
+  }
+}
+
+/**
+ * 【v1.2】强制地图重绘（跳过脏检查）。
+ * 用于 doAction 后地块资源变化（玩家未移动，但地块 a 变了）的场景。
+ */
+function renderMapForce() {
+  lastMapSig = '';
+  renderMap();
+}
+
+/** 渲染顶部资源栏（数据驱动）。 */
+function renderResources() {
+  let html = '';
+  for (const r of RESOURCES) {
+    const val = (typeof state.resources[r.key] === 'number') ? state.resources[r.key] : 0;
+    html += `<div class="res" title="${r.desc || r.name}">
+      <span class="icon">${r.icon}</span>
+      <span class="val" data-res="${r.key}">${val}</span>
+      <span class="name">${r.name}</span>
+    </div>`;
+  }
+  DOM.resbar.innerHTML = html;
+}
+
+/** 渲染状态条（体力 / 饥饿）。 */
+function renderStatusBars() {
+  let html = '';
+  for (const b of BARS) {
+    const max = NUM[b.maxKey] || 100;
+    const raw = (typeof state[b.key] === 'number') ? state[b.key] : 0;
+    const pct = clamp((raw / max) * 100, 0, 100);
+    // 颜色分级：>40 正常，>0 偏低，=0 归零
+    let cls = b.cls;
+    if (pct <= 0) cls = 'bar-zero';
+    else if (pct <= 40) cls = 'bar-low';
+    html += `<div class="bar-row">
+      <span class="lab">${b.icon} ${b.name}</span>
+      <span class="track"><span class="fill ${cls}" style="width:${pct.toFixed(1)}%"></span></span>
+      <span class="num" data-bar="${b.key}">${Math.round(raw)}/${max}</span>
+    </div>`;
+  }
+  DOM.bars.innerHTML = html;
+}
+
+/** 渲染动作按钮（数据驱动 + 禁用态）。【v1.2】只渲染当前地块可做的动作。 */
+function renderActions() {
+  let html = '';
+  // 【v1.2】循环源由 ACTIONS 改为 actionsHere()（按地块白名单过滤）
+  const here = actionsHere();
+  // 底部提示：本地的动作之外，还能移动（但移动走地图点击，不进动作表）
+  if (here.length === 0) {
+    html = `<div class="act-cost" style="grid-column:1/-1;color:var(--text-dim);font-size:12px;">` +
+           `这里没什么可做的，换块地试试（点击地图相邻格移动）。</div>`;
+  }
+  for (const a of here) {
+    const check = canDoAction(a);
+    const disabled = (!check.ok) ? 'disabled' : '';
+    const keyCls = a.key ? ' act-key' : '';
+    // 构造消耗/产出描述
+    const parts = [];
+    const c = a.cost || {};
+    if (c.stamina) parts.push(`⚡-${c.stamina}`);
+    if (c.hunger)  parts.push(`🍖-${c.hunger}`);
+    if (a.gain && a.gain.stamina) parts.push(`⚡+${rollRangeText(a.gain.stamina)}`);
+    if (a.gain && a.gain.resources) {
+      for (const k in a.gain.resources) {
+        const def = RESOURCES.find(r => r.key === k);
+        parts.push(`${def ? def.icon : k}+${rollRangeText(a.gain.resources[k])}`);
+      }
+    }
+    const costText = parts.join('  ');
+
+    html += `<button class="act${keyCls}" data-action="${a.id}" ${disabled}
+                title="${check.ok ? '' : check.reason}">
+      <span class="act-head"><span class="icon">${a.icon}</span>${a.name}</span>
+      <span class="act-cost">${costText}</span>
+    </button>`;
+  }
+  DOM.actions.innerHTML = html;
+}
+
+/* ============================================================
+   【v1.4】通用决策弹窗系统
+   —— 硬核求生中的「有代价选择」，每类仅首次触发一次。
+   ============================================================ */
+
+/**
+ * 三个示例决策定义。每个选项的 apply() 用闭包直接改 state + addLog，
+ * 体现「有代价」基调：收益常与体力 / 饥饿 / 资源损耗相伴。
+ * 注意：游戏内 hunger 为「饱食度」（越高越饱，随时间下降，归零则饿死），
+ *       故「变饿」= hunger 数值下降。
+ */
+const DECISIONS = {
+  arrive_mountain: {
+    id: 'arrive_mountain',
+    title: '⛰️ 攀上崎岖山岩',
+    desc: '你首次站上风化的山体。如何行动？',
+    options: [
+      {
+        label: '攀岩深探',
+        hint: '耗体力12，或得石+2~4，但有概率失足（掉体力8）',
+        apply: () => {
+          state.stamina = clamp(state.stamina - 12, 0, NUM.MAX_STAMINA);
+          if (Math.random() < 0.7) {
+            const g = randInt(2, 4);
+            state.resources.stone = numOr(state.resources.stone, 0) + g;
+            addLog(`你攀上岩缝，采得石块 ×${g}。`, 'good');
+          } else {
+            state.stamina = clamp(state.stamina - 8, 0, NUM.MAX_STAMINA);
+            addLog('你一脚踩空摔了一跤，痛失体力 8。', 'bad');
+          }
+        }
+      },
+      {
+        label: '沿山脚绕行',
+        hint: '不耗体力，但无收益',
+        apply: () => {
+          addLog('你沿山脚绕行，未多作停留。', 'info');
+        }
+      },
+      {
+        label: '就地驻扎回气',
+        hint: '回体力10，但更饿（饱食度-5）',
+        apply: () => {
+          state.stamina = clamp(state.stamina + 10, 0, NUM.MAX_STAMINA);
+          state.hunger  = clamp(state.hunger  - 5, 0, NUM.MAX_HUNGER);
+          addLog('你就地驻扎，闭目回了几口力气，肚子却更饿了。', 'info');
+        }
+      }
+    ]
+  },
+
+  arrive_river: {
+    id: 'arrive_river',
+    title: '🏞️ 抵达河谷',
+    desc: '河水潺潺，生机与危险并存。你要？',
+    options: [
+      {
+        label: '涉水捕鱼',
+        hint: '耗体力10，得食物+2~4，概率落水掉体力8',
+        apply: () => {
+          state.stamina = clamp(state.stamina - 10, 0, NUM.MAX_STAMINA);
+          if (Math.random() < 0.7) {
+            const g = randInt(2, 4);
+            state.resources.food = numOr(state.resources.food, 0) + g;
+            addLog(`你涉水得手，捞起食物 ×${g}。`, 'good');
+          } else {
+            state.stamina = clamp(state.stamina - 8, 0, NUM.MAX_STAMINA);
+            addLog('一个浪头打来，你呛水落水，掉了体力 8。', 'bad');
+          }
+        }
+      },
+      {
+        label: '岸边取水净身',
+        hint: '回体力6，无收益',
+        apply: () => {
+          state.stamina = clamp(state.stamina + 6, 0, NUM.MAX_STAMINA);
+          addLog('你在岸边掬水净身，精神稍复，回体力 6。', 'info');
+        }
+      },
+      {
+        label: '绕道避险',
+        hint: '无收益，省体力',
+        apply: () => {
+          addLog('你绕开河道，谨慎避险，未敢轻涉。', 'info');
+        }
+      }
+    ]
+  },
+
+  low_stamina: {
+    id: 'low_stamina',
+    title: '😮‍💨 体力见底',
+    desc: '你双腿发沉，眼前发黑。怎么办？',
+    options: [
+      {
+        label: '就地休整',
+        hint: '回体力35，但更饿（饱食度-10）',
+        apply: () => {
+          state.stamina = clamp(state.stamina + 35, 0, NUM.MAX_STAMINA);
+          state.hunger  = clamp(state.hunger  - 10, 0, NUM.MAX_HUNGER);
+          addLog('你就地休整，缓过一口气，回体力 35，却更饿了。', 'info');
+        }
+      },
+      {
+        label: '硬撑继续',
+        hint: '不恢复，赌一把',
+        apply: () => {
+          addLog('你咬牙硬撑，继续踉跄前行。', 'info');
+        }
+      },
+      {
+        label: '啃食存粮',
+        hint: '若食物≥1，耗食物1回体力20',
+        apply: () => {
+          if (numOr(state.resources.food, 0) >= 1) {
+            state.resources.food = numOr(state.resources.food, 0) - 1;
+            state.stamina = clamp(state.stamina + 20, 0, NUM.MAX_STAMINA);
+            addLog('你啃下存粮，回体力 20。', 'good');
+          } else {
+            addLog('你翻遍行囊，却没有任何存粮可啃。', 'warn');
+          }
+        }
+      }
+    ]
+  }
+};
+
+/**
+ * 弹出一个通用决策弹窗。
+ * 每个选项点击后：先关闭窗口，再执行该选项的 apply()，最后重绘。
+ * @param {{id:string,title:string,desc:string,options:Array}} dec
+ */
+function presentDecision(dec) {
+  if (state.decisionOpen || state.dead) return;
+  if (!dec || !Array.isArray(dec.options) || !DOM.decision) return;
+
+  state.decisionOpen = true;   // 暂停 tick / 移动输入
+
+  DOM.decTitle.textContent = dec.title || '';
+  DOM.decDesc.textContent = dec.desc || '';
+
+  // 生成选项按钮
+  DOM.decOpts.innerHTML = '';
+  for (const opt of dec.options) {
+    const btn = document.createElement('button');
+    btn.className = 'dec-opt';
+    btn.innerHTML = `<span class="do-label">${escapeHtml(opt.label || '')}</span>` +
+                    `<span class="do-hint">${escapeHtml(opt.hint || '')}</span>`;
+    btn.addEventListener('click', () => {
+      // 先关闭窗口，再执行选择，最后重绘
+      state.decisionOpen = false;
+      DOM.decision.classList.remove('show');
+      if (typeof opt.apply === 'function') opt.apply();
+      renderAll();
+    });
+    DOM.decOpts.appendChild(btn);
+  }
+
+  DOM.decision.classList.add('show');
+}
+
+/**
+ * 按需触发决策：每个 id 仅首次弹出（靠 decisionsSeen 去重）。
+ * @param {string} id
+ * @param {object} dec
+ */
+function maybeDecision(id, dec) {
+  if (state.decisionsSeen.includes(id) || state.decisionOpen || state.dead) return;
+  state.decisionsSeen.push(id);
+  presentDecision(dec);
+}
+
+/** 把产出规格格式化为展示文本。 */
+function rollRangeText(spec) {
+  if (Array.isArray(spec)) return `${spec[0]}~${spec[1]}`;
+  return String(spec);
+}
+
+/** 渲染日志区。 */
+function renderLogs() {
+  let html = '';
+  for (const item of state.logs) {
+    const time = formatTime(item.t);
+    html += `<div class="log-item" data-type="${item.type || 'info'}">
+      <span class="t">${time}</span>${escapeHtml(item.text)}
+    </div>`;
+  }
+  DOM.logList.innerHTML = html;
+  // 自动滚到底部
+  DOM.logList.scrollTop = DOM.logList.scrollHeight;
+}
+
+/** 全量渲染。【v1.2】追加 renderMap（内置脏检查，无移动时自动跳过）。 */
+function renderAll() {
+  renderResources();
+  renderStatusBars();
+  renderMap();       // 【v1.2】地图（带脏检查）
+  renderActions();
+  renderLogs();
+}
+
+/** 时间戳 → HH:MM:SS。 */
+function formatTime(ts) {
+  const d = new Date(ts || Date.now());
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+/** 简单 HTML 转义，避免日志文本破坏结构。 */
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
+ * 追加一条日志。
+ * @param {string} text
+ * @param {string} type  info | good | bad | warn
+ * @param {boolean} [noRender] 为 true 时不触发重绘（由调用方统一渲染）
+ */
+function addLog(text, type, noRender) {
+  state.logs.push({ t: Date.now(), text: String(text), type: type || 'info' });
+  if (state.logs.length > NUM.LOG_MAX) {
+    state.logs.splice(0, state.logs.length - NUM.LOG_MAX);
+  }
+  if (!noRender && DOM.logList) renderLogs();
+}
+
+/** 显示死亡遮罩。 */
+function showOverlay(title, desc) {
+  if (!DOM.overlay) return;       // 桩环境下无 DOM 时安全跳过
+  DOM.ovTitle.textContent = title;
+  DOM.ovDesc.textContent = desc;
+  DOM.overlay.classList.add('show');
+}
+
+/** 隐藏遮罩。 */
+function hideOverlay() {
+  if (!DOM.overlay) return;
+  DOM.overlay.classList.remove('show');
+}
+
+/* ============================================================
+   5. 存档区 SAVE
+   ============================================================ */
+
+/**
+ * 保存游戏到 localStorage。
+ * 若存储不可用（隐私模式等），静默失败，不影响游戏。
+ * @returns {boolean}
+ */
+function saveGame() {
+  try {
+    state.saveVersion = SAVE_VERSION;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch (e) {
+    // 存档失败不弹窗，仅在控制台提示
+    console.warn('[存档失败]', e);
+    return false;
+  }
+}
+
+/**
+ * 从 localStorage 读取存档。
+ * 容错策略：任何字段缺失/类型错误 → 回退默认值；整体解析失败 → 用全新状态。
+ * 绝不因存档问题崩溃。
+ * @returns {{loaded: boolean, migrated: boolean}}
+ */
+function loadGame() {
+  let raw = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
+  } catch (e) {
+    console.warn('[读档失败：存储不可用]', e);
+    return { loaded: false, migrated: false };
+  }
+  if (!raw) return { loaded: false, migrated: false };
+
+  let parsed = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    console.warn('[读档失败：JSON 解析错误，已重置]', e);
+    return { loaded: false, migrated: false };
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    return { loaded: false, migrated: false };
+  }
+
+  const def = createDefaultState();
+  const prevVersion = typeof parsed.saveVersion === 'number' ? parsed.saveVersion : 0;
+
+  // —— 逐字段容错合并 ——
+  const merged = def;
+
+  // 数值字段：逐个校验
+  merged.stamina = numOr(parsed.stamina, def.stamina);
+  merged.hunger  = numOr(parsed.hunger,  def.hunger);
+  merged.age     = numOr(parsed.age,     def.age);
+  merged.lifespan= numOr(parsed.lifespan,def.lifespan);
+  merged.day     = numOr(parsed.day,     def.day);
+  merged.createdAt = numOr(parsed.createdAt, def.createdAt);
+  merged.stats   = mergeStats(parsed.stats, def.stats);
+
+  // 【v1.1 新增字段】挨饿计时器：旧存档缺此字段 → 回退默认 0，绝不崩
+  merged.starveTimer = numOr(parsed.starveTimer, def.starveTimer);
+
+  // 温度（字符串枚举，非法值回退 normal）
+  merged.temperature = (parsed.temperature === 'cold' ||
+                        parsed.temperature === 'freezing' ||
+                        parsed.temperature === 'normal')
+                        ? parsed.temperature : 'normal';
+
+  // 资源：以 RESOURCES 为准，缺失补 0，非法补 0
+  merged.resources = {};
+  for (const r of RESOURCES) {
+    merged.resources[r.key] = numOr(parsed.resources && parsed.resources[r.key], 0);
+  }
+
+  // 日志：必须是数组，逐条过滤脏数据
+  merged.logs = Array.isArray(parsed.logs)
+    ? parsed.logs
+        .filter(l => l && typeof l === 'object' && typeof l.text === 'string')
+        .map(l => ({ t: numOr(l.t, Date.now()), text: l.text, type: typeof l.type === 'string' ? l.type : 'info' }))
+        .slice(-NUM.LOG_MAX)
+    : [];
+
+  // 生死
+  merged.dead = parsed.dead === true;
+  merged.causeOfDeath = typeof parsed.causeOfDeath === 'string' ? parsed.causeOfDeath : '';
+
+  // —— 【v1.2 新增字段】地图容错（F12）——
+  // seed：合法数字则用，否则现生成
+  merged.seed = numOr(parsed.seed, def.seed);
+
+  // map：必须是长度 400 的合法数组，否则先标记为「待迁移/待生成」（null）
+  // 注意：这里不立即生成地图，交给 migrateSave 统一处理（避免双重生成 + 保证迁移幂等）
+  merged.map = sanitizeMap(parsed.map);
+
+  // player：x/y 必须是整数且在界内，moved 是非负数
+  merged.player = sanitizePlayer(parsed.player, def.player);
+
+  // 存档版本
+  merged.saveVersion = SAVE_VERSION;
+
+  // 【v1.1】原地覆盖 state：就地替换所有字段，避免「重新赋值 state 变量」。
+  // 原因：外部（测试桩 / 调试面板）可能已持有 state 对象引用，若整对象替换会
+  // 导致其引用失效（读到旧对象）。原地覆盖可保证引用永远有效。
+  applyState(merged);
+
+  // 版本迁移钩子（v2+ 在此按 prevVersion 做结构升级）
+  const migrated = migrateSave(prevVersion);
+
+  // 【v1.4】决策去重集合：从旧档恢复，缺失则回退空数组（向下兼容）
+  state.decisionsSeen = Array.isArray(parsed.decisionsSeen) ? parsed.decisionsSeen : [];
+  // 决策窗口为运行时态，重载后强制关闭，避免卡死在「暂停」状态
+  state.decisionOpen = false;
+
+  // 【v1.2】迁移后立即回写磁盘：保证 localStorage 里的 saveVersion 同步为 3，
+  // 避免「用户迁移后秒退，磁盘仍是旧版本」的窗口期（迁移本身幂等，但回写更干净）。
+  if (migrated) saveGame();
+
+  return { loaded: true, migrated: migrated };
+}
+
+/**
+ * 【v1.1 新增】把 src 的所有字段原地写入全局 state（保持对象同一性）。
+ * 先清空旧字段，再浅拷贝覆盖，确保「多余字段」不会残留。
+ * @param {object} src 已合并/容错后的状态对象
+ */
+function applyState(src) {
+  for (const k in state) {
+    if (Object.prototype.hasOwnProperty.call(state, k)) delete state[k];
+  }
+  for (const k in src) {
+    if (Object.prototype.hasOwnProperty.call(src, k)) state[k] = src[k];
+  }
+}
+
+/**
+ * 版本迁移钩子（F12，§7.5）。
+ * v1/v2 → v3：现场生成地图（R5：迁移后同样走出生点友好化，避免老玩家卡在山里）。
+ * 老玩家的体力/饥饿/资源/日志/统计原封不动。
+ * 幂等：已有合法 map + player 时不会重复生成。
+ * @param {number} fromVersion 旧存档版本号
+ * @returns {boolean} 是否发生了迁移
+ */
+function migrateSave(fromVersion) {
+  const from = numOr(fromVersion, 0);
+  if (from < SAVE_VERSION) {
+    console.log(`[存档迁移] v${from} → v${SAVE_VERSION}`);
+
+    // ① 地图缺失/非法 → 用有效 seed 现场生成（makeMap 内含出生点友好化）
+    if (!Array.isArray(state.map) || state.map.length !== MAP_SIZE) {
+      state.seed = numOr(state.seed, createSeed());
+      state.map = makeMap(state.seed);
+    }
+
+    // ② 玩家坐标缺失/非法 → 回到出生点
+    state.player = sanitizePlayer(state.player, { x: SPAWN_X, y: SPAWN_Y, moved: 0 });
+
+    // ③ 出生点安全兜底：确保迁移后玩家所在格不会被卡死（R5）
+    const here = tileAt(state.player.x, state.player.y);
+    if (!here) {
+      state.player = { x: SPAWN_X, y: SPAWN_Y, moved: numOr(state.player && state.player.moved, 0) };
+    }
+    applySpawnFriendly(state.map);  // 再次保证出生点周边友好（幂等）
+
+    // ④ 首次视野
+    revealAround(state.player.x, state.player.y);
+    return true;
+  }
+  // 新档也兜底：地图缺失时补生成（防御损坏存档）
+  if (!Array.isArray(state.map) || state.map.length !== MAP_SIZE) {
+    state.seed = numOr(state.seed, createSeed());
+    state.map = makeMap(state.seed);
+    revealAround(state.player.x, state.player.y);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 【v1.2】校验并清洗地图数组（R6：字段非法一律兜底）。
+ * 只要长度不是 400，就返回 null（表示需要迁移/重新生成）。
+ * @param {any} raw
+ * @returns {Array|null}
+ */
+function sanitizeMap(raw) {
+  if (!Array.isArray(raw) || raw.length !== MAP_SIZE) return null;
+  const out = new Array(MAP_SIZE);
+  for (let i = 0; i < MAP_SIZE; i++) {
+    const t = raw[i];
+    if (!t || typeof t !== 'object') {
+      out[i] = { t: TILE_BY_ID('plain').id, a: 0, seen: false, b: null };
+      continue;
+    }
+    // t 非法 → 兜底 plain（R6）
+    const terrain = (typeof t.t === 'string' && TILES.some(d => d.id === t.t)) ? t.t : TILE_BY_ID('plain').id;
+    out[i] = {
+      t: terrain,
+      a: Math.max(0, numOr(t.a, 0)),
+      seen: t.seen === true,
+      b: null
+    };
+  }
+  return out;
+}
+
+/**
+ * 【v1.2】校验并清洗玩家坐标。
+ * x/y 必须为界内整数，否则回退默认出生点；moved 为非负整数。
+ * @param {any} raw
+ * @param {{x:number,y:number,moved:number}} def
+ * @returns {{x:number,y:number,moved:number}}
+ */
+function sanitizePlayer(raw, def) {
+  const d = def || { x: SPAWN_X, y: SPAWN_Y, moved: 0 };
+  if (!raw || typeof raw !== 'object') return { x: d.x, y: d.y, moved: d.moved };
+  const x = Number.isInteger(raw.x) ? raw.x : d.x;
+  const y = Number.isInteger(raw.y) ? raw.y : d.y;
+  const moved = numOr(raw.moved, d.moved);
+  // 越界坐标 → 回退出生点
+  if (!inBounds(x, y)) return { x: SPAWN_X, y: SPAWN_Y, moved: moved };
+  return { x: x, y: y, moved: moved };
+}
+
+/** 工具：若 v 是合法数字则返回 v，否则返回默认值 def。 */
+function numOr(v, def) {
+  return (typeof v === 'number' && isFinite(v)) ? v : def;
+}
+
+/** 工具：合并统计对象，容错。 */
+function mergeStats(s, def) {
+  if (!s || typeof s !== 'object') return { ticks: def.ticks, actions: def.actions };
+  return {
+    ticks:   numOr(s.ticks, def.ticks),
+    actions: numOr(s.actions, def.actions)
+  };
+}
+
+/** 清空存档并重启（死亡后重开用）。 */
+function resetGame() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* 忽略 */ }
+  // 原地重置：保持 state 引用不变（与 loadGame 同策略）
+  applyState(createDefaultState());
+  // 【v1.2-iso】重置地图渲染签名，强制下次 renderMap 全量刷新（新地图）
+  lastMapSig = '';
+  hideOverlay();
+  addLog('🌍 你再次睁开眼，赤手空拳站在陌生的荒野上。', 'info', true);
+  addLog('🗺️ 这是一片全新的荒野，点击相邻格开始探索。', 'info', true);
+  saveGame();
+  renderAll();
+  startLoop();
+}
+
+/* ============================================================
+   5.x 【v1.2 摇杆版】虚拟摇杆 + 键盘移动
+   ============================================================ */
+
+/**
+ * 尝试向指定方向走一格。统一处理死亡态：死亡时任何移动都不生效。
+ * @param {number} dx 横向偏移（-1/0/1）
+ * @param {number} dy 纵向偏移（-1/0/1）
+ * @returns {boolean} 是否成功移动
+ */
+function tryMoveDir(dx, dy, silent = false) {
+  if (state.dead) return false;
+  if (state.decisionOpen) return false;   // 【v1.4】决策窗口打开时禁用移动输入
+  return moveTo(state.player.x + dx, state.player.y + dy, silent);
+}
+
+/**
+ * 初始化虚拟摇杆（Pointer Events 实现，桌面/移动端通用）。
+ * - 拖动摇杆：根据主导轴得到四方向，进入新方向时立即移动一次，
+ *   随后以 300ms 间隔持续移动，直到松手。
+ * - 使用 pointer capture，拖出底座也不会丢失事件。
+ */
+function initJoystick() {
+  const base = DOM.joystick;
+  const knob = DOM.joyKnob;
+  if (!base || !knob) return;
+
+  const R = 38;      // 摇杆最大位移（像素）
+  const DEAD = 14;   // 死区半径（像素），小于此值不触发移动
+  let active = false;
+  let cx = 0, cy = 0;      // 底座中心
+  let lastDir = null;      // 上一次触发移动的方向字符串，如 "1,0"
+  let repeatTimer = null;  // 持续移动定时器
+
+  /** 设置摇杆旋钮位置（相对底座中心）。 */
+  const setKnob = (x, y) => { knob.style.transform = `translate(${x}px,${y}px)`; };
+  /** 停止持续移动计时器。 */
+  const stopRepeat = () => { if (repeatTimer) { clearInterval(repeatTimer); repeatTimer = null; } };
+
+  /** 拖拽过程中更新方向并触发/续发移动。 */
+  const onMove = (e) => {
+    if (!active) return;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    let dist = Math.hypot(dx, dy);
+    // 超出半径则缩放回边界
+    let kx = dx, ky = dy;
+    if (dist > R) { kx = (dx / dist) * R; ky = (dy / dist) * R; dist = R; }
+    setKnob(kx, ky);
+
+    // 死区内：不触发移动
+    if (dist < DEAD) { lastDir = null; return; }
+
+    // 取主导轴 → 四方向
+    let mdx = 0, mdy = 0;
+    if (Math.abs(dx) >= Math.abs(dy)) { mdx = dx > 0 ? 1 : -1; }
+    else { mdy = dy > 0 ? 1 : -1; }
+
+    const dirKey = `${mdx},${mdy}`;
+    if (dirKey !== lastDir) {
+      lastDir = dirKey;
+      tryMoveDir(mdx, mdy);          // 单次手动按下：失败仍提示
+      stopRepeat();
+      repeatTimer = setInterval(() => tryMoveDir(mdx, mdy, true), 300);  // 连发：静默，避免刷屏
+    }
+  };
+
+  base.addEventListener('pointerdown', (e) => {
+    active = true;
+    lastDir = null;
+    const rect = base.getBoundingClientRect();
+    cx = rect.left + rect.width / 2;
+    cy = rect.top + rect.height / 2;
+    try { base.setPointerCapture(e.pointerId); } catch (_) { /* 忽略 */ }
+    onMove(e);
+    e.preventDefault();
+  });
+
+  base.addEventListener('pointermove', onMove);
+
+  const end = (e) => {
+    active = false;
+    lastDir = null;
+    stopRepeat();
+    setKnob(0, 0);
+    if (e && e.pointerId != null && base.hasPointerCapture && base.hasPointerCapture(e.pointerId)) {
+      try { base.releasePointerCapture(e.pointerId); } catch (_) { /* 忽略 */ }
+    }
+  };
+  base.addEventListener('pointerup', end);
+  base.addEventListener('pointercancel', end);
+}
+
+/* ============================================================
+   6. 启动区 BOOT
+   ============================================================ */
+
+/** 启动主循环（tick）。 */
+function startLoop() {
+  if (tickTimer) clearInterval(tickTimer);
+  tickTimer = setInterval(() => {
+    tick();
+  }, Math.max(200, NUM.TICK_MS / TIME_SCALE));
+}
+
+/** 事件绑定（事件委托，按钮由数据驱动生成也不怕）。 */
+function bindEvents() {
+  // 动作按钮：委托到容器
+  if (DOM.actions) {
+    DOM.actions.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn || btn.disabled) return;
+      doAction(btn.getAttribute('data-action'));
+    });
+  }
+
+  // 【v1.2-iso】地图画布：在 #mapCanvas 上挂唯一 click 监听，
+  // 把屏幕坐标经等距逆投影还原成世界偏移，再交给 moveTo（自带校验）。
+  if (DOM.mapCanvas) {
+    DOM.mapCanvas.addEventListener('click', (e) => {
+      if (state.dead) return;
+      const canvas = DOM.mapCanvas;
+      const rect = canvas.getBoundingClientRect();
+      // CSS 尺寸与逻辑尺寸可能不同（DPR / 限宽），按比例还原到逻辑坐标
+      const sx = (e.clientX - rect.left) * (CW / rect.width);
+      const sy = (e.clientY - rect.top)  * (CH / rect.height);
+      const ox = CW / 2, oy = CH / 2;
+      const { dx, dy } = screenToTile(sx, sy, ox, oy, TILE_W, TILE_H);
+      if (dx === 0 && dy === 0) return;  // 点了脚下
+      moveTo(state.player.x + dx, state.player.y + dy);
+    });
+  }
+
+  // 【v1.2 摇杆版】虚拟摇杆：用 Pointer Events 实现可拖动摇杆
+  initJoystick();
+
+  // 【v1.2 摇杆版】键盘移动：方向键 / WASD
+  if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', (e) => {
+      if (state.dead) return;
+      let dx = 0, dy = 0;
+      switch (e.key) {
+        case 'ArrowUp': case 'w': case 'W': dy = -1; break;
+        case 'ArrowDown': case 's': case 'S': dy = 1; break;
+        case 'ArrowLeft': case 'a': case 'A': dx = -1; break;
+        case 'ArrowRight': case 'd': case 'D': dx = 1; break;
+        default: return;
+      }
+      e.preventDefault();
+      tryMoveDir(dx, dy);
+    });
+  }
+
+  // 重新开始
+  if (DOM.ovRestart) {
+    DOM.ovRestart.addEventListener('click', () => {
+      resetGame();
+    });
+  }
+}
+
+/** 初始化。 */
+function init() {
+  bindEvents();
+  resizeCanvas();   // 【v1.2-iso】初始化画布尺寸与等距参数
+  // 窗口缩放时自适应重绘（简单方案，无需节流也够用）
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('resize', resizeCanvas);
+  }
+
+  const result = loadGame();
+  if (result.loaded) {
+    addLog('📜 已读取存档，继续你的求生之旅。', 'info', true);
+    if (result.migrated) {
+      addLog('🗺️ 世界地图已生成——你发现自己站在一片陌生的荒野上。', 'good', true);
+    }
+    // 若读到的是死亡存档，恢复死亡遮罩
+    if (state.dead) {
+      showOverlay('💀 你已死去', state.causeOfDeath ? `死因：${state.causeOfDeath}` : '你的旅程已经结束。');
+    }
+  } else {
+    // 全新开局
+    addLog('🌍 你睁开眼，发现自己赤手空拳，站在一片陌生的荒野上。', 'info', true);
+    addLog('没有工具，没有火，没有同伴。只有脑子里的知识。', 'info', true);
+    addLog('🗺️ 荒野地图已在你脑中浮现——5×5 视野，点击相邻格移动。', 'info', true);
+    addLog('先到森林捡些木棍，或去河谷找点吃的吧，天黑前得生起火。', 'info', true);
+  }
+
+  // 【v1.2】兜底：确保地图一定存在（防止极端情况下 state.map 为空）
+  if (!Array.isArray(state.map) || state.map.length !== MAP_SIZE) {
+    state.seed = numOr(state.seed, createSeed());
+    state.map = makeMap(state.seed);
+  }
+  // 首次视野扩散（幂等）
+  if (state.player) revealAround(state.player.x, state.player.y);
+
+  renderAll();
+  startLoop();
+
+  // 【v1.4】注册 Service Worker（PWA 离线 + 可安装）；file:// 下不注册
+  if ('serviceWorker' in navigator && typeof location !== 'undefined' && location.protocol.indexOf('http') === 0) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+}
+
+// DOM 就绪后启动（本脚本位于 body 末尾，DOM 已可用；桩环境下也安全）
+if (typeof document !== 'undefined' && DOM.actions) {
+  init();
+}
+</script>
+</body>
+</html>
